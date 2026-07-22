@@ -6,8 +6,9 @@
 <title>Particle Visualizer 1.21.11</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+  @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
   *{box-sizing:border-box;image-rendering:pixelated}
-  body{margin:0;font-family:'VT323',monospace;font-size:19px;color:#3f3f3f;
+  body{margin:0;font-family:'MinecraftTTF','VT323',monospace;font-size:19px;color:#3f3f3f;
     background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
       url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png");
     background-size:64px 64px}
@@ -25,7 +26,7 @@
   .hud .live{color:#54fc54}
   .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:10px 12px;
     background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff}
-  button{font-family:'VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;text-shadow:2px 2px #3f3f3f;
+  button{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;text-shadow:2px 2px #3f3f3f;
     border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;padding:5px 16px 3px;cursor:pointer}
   button:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
   button:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
@@ -33,14 +34,14 @@
   button.primary:hover{background:#7cb35a;color:#fff}
   label{color:#3f3f3f;display:flex;align-items:center;gap:6px}
   input[type=number]{width:74px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
-    font-family:'VT323',monospace;font-size:18px;padding:3px 6px}
+    font-family:'MinecraftTTF','VT323',monospace;font-size:18px;padding:3px 6px}
   input[type=number]:focus,textarea:focus{outline:none;border-color:#fff}
   textarea::placeholder{color:#5a5a5a}
   input[type=range]{accent-color:#5f5f5f}
   input[type=checkbox]{accent-color:#6d9c50;width:16px;height:16px}
   .sep{width:2px;height:26px;background:#a5a5a5;border-right:1px solid #fff}
   textarea{width:100%;min-height:150px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
-    font-family:'VT323',monospace;font-size:18px;padding:8px 10px;resize:vertical;line-height:1.45}
+    font-family:'MinecraftTTF','VT323',monospace;font-size:18px;padding:8px 10px;resize:vertical;line-height:1.45}
   #errors{margin-top:8px;line-height:1.4;text-shadow:2px 2px rgba(0,0,0,.8)}
   #errors .e{color:#fc5454} #errors .w{color:#fcfc54} #errors .ok{color:#54fc54}
   .origin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -48,7 +49,7 @@
   .kofi{margin-left:auto;font-size:19px;text-decoration:none;background:#29abe0;color:#fff;
     text-shadow:2px 2px #14556e;border:2px solid;border-color:#a8dff5 #14556e #14556e #a8dff5;padding:5px 16px 3px}
   .kofi:hover{background:#3dbbee;color:#fcfc9c}
-  select{font-family:'VT323',monospace;font-size:18px;background:#000;color:#e0e0e0;border:2px solid #a0a0a0;padding:3px 4px}
+  select{font-family:'MinecraftTTF','VT323',monospace;font-size:18px;background:#000;color:#e0e0e0;border:2px solid #a0a0a0;padding:3px 4px}
   a.cr{color:#54fc54;text-decoration:none;text-shadow:2px 2px #14421e}
   a.cr:hover{color:#8cffb0;text-decoration:underline}
 </style>
@@ -81,6 +82,14 @@
     <label>speed x<input type="number" id="tps" value="1" min="0" step="0.25" style="width:60px"></label>
     <div class="sep"></div>
     <label>zoom <input type="range" id="zoom" min="2" max="60" step="0.1" value="18"></label>
+    <div class="sep"></div>
+    <button id="setBtn">Settings</button>
+  </div>
+
+  <div class="controls" id="setPanel" style="display:none">
+    <label><input type="checkbox" id="invChk"> Invert Camera</label>
+    <label><input type="checkbox" id="gcolChk" checked> Ground Collision</label>
+    <label><input type="checkbox" id="gridChk" checked> Show Grid</label>
   </div>
 
   <div class="controls origin-row">
@@ -98,7 +107,7 @@
       <span class="hint">one per line, ctrl+enter to apply</span>
     </div>
     <div id="errors"></div>
-    <div class="hint" style="margin-top:10px">Vanilla textures and game data from <a class="cr" href="https://github.com/misode/mcmeta" target="_blank" rel="noopener">misode/mcmeta</a>. Bug testing by Yegor_Mechanic.</div>
+    <div class="hint" style="margin-top:10px">Vanilla textures and game data from <a class="cr" href="https://github.com/misode/mcmeta" target="_blank" rel="noopener">misode/mcmeta</a>. Font from <a class="cr" href="https://github.com/tryashtar/minecraft-ttf" target="_blank" rel="noopener">tryashtar/minecraft-ttf</a>. Bug testing by Yegor_Mechanic.</div>
   </div>
 </div>
 
@@ -189,14 +198,14 @@ const P={
  enchant:{colors:["#e6e6ff","#b0b0c8","#8f8fa8"],size:.06,life:[20,40],behavior:"portal",tint:1},
  cloud:{colors:["#f2f2f2","#e0e0e0"],size:.16,life8:1,drag:.96,vel:.02,behavior:"burst",curve:"pop"},
  poof:{colors:["#dcdcdc","#bfbfbf"],size:.14,life8:1,drag:.96,vel:.02,behavior:"burst",curve:"pop"},
- explosion:{colors:["#ffffff","#ffd9a0"],size:.6,life:[6,10],shrink:1},
+ explosion:{colors:["#ffffff","#ffd9a0"],size:1.0,life:[6,10],curve:"grow"},
  electric_spark:{colors:["#fdf100","#fff8b0","#ffffff"],size:.06,life:[4,10],drag:.9,vel:.05,glow:1,shrink:1},
  wax_on:{colors:["#ff9a2e","#ffc86e"],size:.07,life:[8,14],drag:.9,vel:.03,glow:1,shrink:1},
  wax_off:{colors:["#e8e8e8","#fff2c8"],size:.07,life:[8,14],drag:.9,vel:.03,glow:1,shrink:1},
  scrape:{colors:["#6fe0c8","#a8f0e0"],size:.07,life:[8,14],drag:.9,vel:.03,glow:1,shrink:1},
  glow:{colors:["#e6ff8a","#c8f060"],size:.07,life:[16,30],drag:.96,vel:.004,glow:1,flicker:1},
  firework:{colors:["#ffffff","#ffe9c8"],size:.07,life:[20,34],drag:.92,grav:.004,vel:.01,flicker:1,glow:1,shrink:1},
- flash:{colors:["#ffffff"],size:1.6,life:[3,4],glow:1},
+ flash:{colors:["#ffffff"],size:2.0,life:[3,4],glow:1},
  bubble:{colors:["#9ad8ff","#cdeeff"],size:.07,life8:1,drag:.85,rise:.002,vel:.005,velMul:.2},
  bubble_pop:{colors:["#9ad8ff"],size:.05,life:[3,6],vel:.01},
  dripping_water:{colors:["#3d63ff","#5a86ff"],size:.07,life:[30,50],behavior:"drip"},
@@ -225,10 +234,10 @@ const P={
  warped_spore:{colors:["#2bb9a8"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
  nautilus:{colors:["#c8e6ff","#98b8d8"],size:.06,life:[20,40],behavior:"portal",tint:1},
  damage_indicator:{colors:["#8a2b2b"],size:.08,life:[10,16],grav:.05,drag:.96,vel:.04,behavior:"crit",tint:1},
- sweep_attack:{colors:["#e8e8e8"],size:.5,life:[4,6],shrink:1},
- sonic_boom:{colors:["#3de0e8","#a0f4f8"],size:.5,life:[8,12],glow:1,shrink:1},
- gust:{colors:["#d8e8f0","#b0c8d8"],size:.4,life:[10,14],shrink:1},
- small_gust:{colors:["#d8e8f0"],size:.2,life:[8,12],shrink:1},
+ sweep_attack:{colors:["#e8e8e8"],size:1.0,life:[4,6],curve:"grow"},
+ sonic_boom:{colors:["#3de0e8","#a0f4f8"],size:1.0,life:[8,12],glow:1,curve:"grow"},
+ gust:{colors:["#d8e8f0","#b0c8d8"],size:.6,life:[10,14],curve:"grow"},
+ small_gust:{colors:["#d8e8f0"],size:.3,life:[8,12],curve:"grow"},
  trial_spawner_detection:{colors:["#ff8a3d","#3de0e8"],size:.07,life:[16,30],drag:.95,vel:.02,glow:1},
  ominous_spawning:{colors:["#4a5ac8","#7a8ae8"],size:.07,life:[16,30],behavior:"portal",tint:1},
  raid_omen:{colors:["#c84a5a"],size:.07,life:[16,30],drag:.95,vel:.01,tint:1},
@@ -241,7 +250,7 @@ const P={
  dust_color_transition:{colors:["#ff0000"],size:.1,life8:1,drag:.96,vel:.002,curve:"pop",lerp:1},
  block:{colors:["#8a8a8a"],size:.09,life:[10,24],grav:.06,drag:.96,vel:.05,behavior:"crit"},
  falling_dust:{colors:["#c8a878"],size:.14,life:[30,70],grav:.012,drag:.98,vel:.002,noSpeed:1},
- block_marker:{colors:["#e8e8e8"],size:.5,life:[60,60]},
+ block_marker:{colors:["#e8e8e8"],size:.5,life:[60,60],noSzVar:1},
  dust_plume:{colors:["#c8b8a0","#a89880"],size:.12,life:[20,40],drag:.92,rise:.01,vel:.01,shrink:1},
  trail:{colors:["#e8d8b0"],size:.08,life:[20,40],behavior:"trail",tint:1,glow:1},
  firefly:{colors:["#d8ff5e"],size:.04,life:[60,120],drag:.98,vel:.006,glow:1,flicker:1},
@@ -271,7 +280,7 @@ Object.assign(P,{
  landing_lava:{colors:["#ff8a1e"],size:.07,life:[60,120]},
  landing_obsidian_tear:{colors:["#7a2bb0"],size:.07,life:[60,120]},
  egg_crack:{colors:["#f0ead8","#d8cfa8"],size:.06,life:[6,14],grav:.05,drag:.96,vel:.03,behavior:"crit"},
- elder_guardian:{colors:["#7a95a0"],size:1.4,life:[28,32],shrink:1},
+ elder_guardian:{colors:["#7a95a0"],size:2.0,life:[28,32],fade:1},
  fishing:{colors:["#5a86ff","#9ad8ff"],size:.06,life:[6,12],grav:.05,drag:.96,vel:.05,behavior:"crit"},
  spit:{colors:["#e8e8e0"],size:.1,life:[10,20],grav:.03,drag:.98,vel:.01},
  shriek:{colors:["#1e4a5a","#2b6e8a"],size:.5,life:[28,32],rise:.01},
@@ -324,6 +333,68 @@ P.block_crumble.life=[6,16];P.block_crumble.hangT=[0,3];
  "end_rod","glow","firefly","spore_blossom_air","noxious_gas_cloud","witch"].forEach(n=>P[n].fade=1);
 ["cherry_leaves","pale_oak_leaves","tinted_leaves","orange_poplar_leaves","red_poplar_leaves",
  "yellow_poplar_leaves"].forEach(n=>{if(P[n])P[n].randFrame=1;});
+["end_rod","flash","elder_guardian","shriek","explosion","sonic_boom","sweep_attack"].forEach(n=>{if(P[n])P[n].noSzVar=1;});
+["campfire_cosy_smoke","campfire_signal_smoke","smoke","large_smoke","white_smoke"].forEach(n=>{P[n].ySlide=1;});
+["underwater","mycelium","block_marker","flash","explosion","sweep_attack","sonic_boom",
+ "gust","small_gust"].forEach(n=>{if(P[n])P[n].noPhys=1;});
+// verified against the 1.21.11 unobfuscated source (net.minecraft.client.particle)
+const V=(n,o)=>{if(P[n])Object.assign(P[n],o);};
+["crit","enchanted_hit","damage_indicator","heart","angry_villager","cloud","dragon_breath",
+ "glow","sculk_charge","effect","instant_effect","entity_effect","witch","squid_ink",
+ "glow_squid_ink","ash","white_ash","spore_blossom_air","crimson_spore","warped_spore",
+ "current_down"].forEach(n=>{if(P[n])P[n].noPhys=1;});
+V("block_marker",{life:[80,80]});
+["crit","enchanted_hit","damage_indicator"].forEach(n=>V(n,{life:[5,10],size:.11,drag:.7,grav:.02,
+  vel:0,velMul:0,popZero:1,popMul:.1,inMul:.4,curve:"pop"}));
+V("poof",{pop:0,popZero:0,vel:.03,grav:-.004,drag:.9,lifeN:[16,2],size:.28,szW:[.35,2.4],curve:"pop"});
+V("cloud",{pop:0,popZero:1,popMul:.1,inMul:1,vel:0,drag:.96,lifeN:[8,0,2.5],size:.28,curve:"pop"});
+V("explosion",{life:[6,10],size:2.0});
+V("sonic_boom",{life:[16,16],size:1.5});
+V("sweep_attack",{life:[4,4],size:1.0});
+V("gust",{life:[12,16],size:1.0});
+["smoke","white_smoke"].forEach(n=>V(n,{pop:0,popZero:1,popMul:.1,inMul:1,vel:0,rise:0,
+  grav:-.004,drag:.96,lifeN:[8],size:.11,curve:"pop"}));
+V("large_smoke",{pop:0,popZero:1,popMul:.1,inMul:1,vel:0,rise:0,grav:-.004,drag:.96,
+  lifeN:[8,0,2.5],size:.28,curve:"pop"});
+V("ash",{popZero:1,popMul:.1,inMul:1,vel:0,grav:.004,drag:.96,lifeN:[20],curve:"pop"});
+V("white_ash",{popZero:1,popMul:.1,inMul:1,vel:0,grav:.0005,drag:.96,lifeN:[20],curve:"pop"});
+["campfire_cosy_smoke","campfire_signal_smoke"].forEach(n=>V(n,{size:.45}));
+["heart","angry_villager"].forEach(n=>V(n,{pop:0,popZero:1,popMul:.01,inMul:0,upF:.1,
+  life:[16,16],size:.23,drag:.86,grav:0,vel:0,curve:"pop"}));
+V("note",{popZero:1,popMul:.01,inMul:0,size:.23,curve:"pop"});
+["happy_villager","mycelium"].forEach(n=>V(n,{lifeN:[20],size:.12,drag:.99,velMul:.02}));
+V("underwater",{lifeN:[16],drag:1});
+V("spore_blossom_air",{life:[500,1000],grav:.0004,drag:1});
+V("portal",{size:.06,life:[40,50]});
+V("reverse_portal",{size:.2,life:[60,62]});
+V("end_rod",{drag:.91,grav:.0005,rise:0,size:.11});
+V("totem_of_undying",{drag:.6,grav:.05,life:[60,72],size:.11,pop:0,vel:0,behavior:null});
+V("firework",{drag:.91,grav:.004,life:[48,60],size:.11});
+V("soul",{lifeN:[8,4],drag:.96,size:.22});
+["flame","soul_fire_flame","copper_fire_flame"].forEach(n=>V(n,{lifeN:[8,4]}));
+V("small_flame",{lifeN:[8,4],size:.055});
+V("glow",{drag:.96,size:.11});
+V("snowflake",{grav:.009,drag:.93,vel:.03,lifeN:[16,2]});
+V("lava",{grav:.03,drag:.999,velMul:.8,up:[.05,.45],size:.22,szW:[.6,2.2],lifeN:[16],behavior:null});
+V("splash",{pop:0,popZero:0,grav:.0024,drag:.98,velMul:.3,up:[.1,.3],lifeN:[8],vel:0});
+V("bubble",{lifeN:[8]});
+V("bubble_column_up",{grav:-.005,drag:.85,lifeN:[40],velMul:.2,rise:0,vel:.01});
+V("bubble_pop",{life:[4,4],grav:.0003});
+V("squid_ink",{drag:.92,size:.5,life:[12,30]});
+V("glow_squid_ink",{drag:.92,size:.5,life:[12,30]});
+V("dust_plume",{drag:.88,rise:0,grav:.001});
+V("spit",{grav:.02});
+V("shriek",{size:.85,life:[30,30]});
+V("vibration",{size:.3});
+V("trail",{size:.26});
+V("dragon_breath",{drag:.96,lifeN:[20],size:.11});
+V("trial_spawner_detection",{grav:-.004,rise:0,drag:.96});
+V("falling_dust",{size:.1});
+["cherry_leaves","pale_oak_leaves","tinted_leaves","orange_poplar_leaves","red_poplar_leaves",
+ "yellow_poplar_leaves"].forEach(n=>V(n,{life:[280,300]}));
+["effect","instant_effect","entity_effect","witch"].forEach(n=>V(n,{drag:.96,grav:-.004,
+  lifeN:[8],size:.11,velMul:.2}));
+V("sculk_charge",{drag:.96,size:.22});
 ["ash","white_ash","mycelium","spore_blossom_air","crimson_spore","warped_spore",
  "cherry_leaves","pale_oak_leaves","tinted_leaves","firefly","underwater","note"].forEach(n=>P[n].ignoreVel=1);
 const BLOCK_FAMILY=["block","falling_dust","block_marker","dust_pillar","block_crumble"];
@@ -396,6 +467,7 @@ function parseCommands(text){
       if(br>-1){opts=parseSNBT(typeTok.slice(br));typeTok=typeTok.slice(0,br);
         if(!opts)msgs.push({t:"w",m:`line ${i+1}: bad component data, ignored`});}
       const name=typeTok.replace(/^minecraft:/,"");
+      if(name==="elder_guardian")throw"particle not currently available due to limitations";
       let def=P[name];
       if(!def){def={colors:["#ff44ff","#111111"],size:.1,life:[14,24],vel:.004,missing:1};
         msgs.push({t:"w",m:`line ${i+1}: unknown particle "${name}", using generic physics`});}
@@ -438,6 +510,8 @@ function parseCommands(text){
             def.blockImgSide=loadImage(ASSETS+"textures/block/"+iid+"_top.png");}
         }else if(name==="shriek"){
           if(opts.delay)def.delayTicks=+opts.delay;
+        }else if(name==="flash"){
+          const c=colorFrom(opts.color);if(c){def.colors=[c];def.tint=1;}
         }
       }
       if(BLOCK_FAMILY.includes(name)&&!def.blockImg)
@@ -495,9 +569,13 @@ function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
   if(def.velMul){vx*=def.velMul;vy*=def.velMul;vz*=def.velMul;}
   if(def.pop){const v=popVel(vx,vy,vz);vx=v[0];vy=v[1];vz=v[2];
     if(def.popMul){vx*=def.popMul;vy*=def.popMul;vz*=def.popMul;}}
-  const lf=def.life8?(8/(Math.random()*0.8+0.2))|0:rand(def.life[0],def.life[1])|0;
+  else if(def.popZero){ // vanilla pattern: normalized pop of zero, scaled, plus raw input
+    const v=popVel(0,0,0),m=def.popMul||1,im=def.inMul!==undefined?def.inMul:1;
+    vx=v[0]*m+vx*im;vy=v[1]*m+vy*im;vz=v[2]*m+vz*im;}
+  const lf=def.lifeN?(((def.lifeN[0]/(Math.random()*0.8+0.2))*(def.lifeN[2]||1)+(def.lifeN[1]||0))|0)
+    :def.life8?(8/(Math.random()*0.8+0.2))|0:rand(def.life[0],def.life[1])|0;
   const p={x,y,z,vx,vy,vz,age:0,life:lf,def,
-    ox:ox2,oy:oy2,oz:oz2,seed:Math.random()*Math.PI*2};
+    ox:ox2,oy:oy2,oz:oz2,seed:Math.random()*Math.PI*2,szm:rand(.7,1.3)};
   if(def.behavior==="portal"){
     p.tx=x;p.ty=y;p.tz=z;
     let dx=p.vx,dy=p.vy,dz=p.vz;
@@ -506,6 +584,8 @@ function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
   }
   if(def.behavior==="note")p.vy=.2;
   if(def.up)p.vy+=rand(def.up[0],def.up[1]);
+  if(def.upF)p.vy+=def.upF;
+  if(def.szW)p.szm=rand(def.szW[0],def.szW[1]);
   p.hidden=def.delayTicks||0;
   if(def.behavior==="trail"){
     p.sx=x;p.sy=y;p.sz=z;
@@ -529,6 +609,8 @@ function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
 function stepSim(){
   tick++;
   const chk=$("loopChk").checked,iv=Math.max(1,parseInt($("loopTicks").value)||1);
+  const gCol=$("groundChk").checked&&$("gcolChk").checked;
+  const cgx=Math.floor(origin.x),cgz=Math.floor(origin.z),CR=8;
   if(chk&&tick%iv===0)emitters.forEach(spawnFromEmitter);
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i],d=p.def;
@@ -537,7 +619,7 @@ function stepSim(){
     if(p.age>=p.life){particles.splice(i,1);continue;}
     if(d.behavior==="portal"){
       let f=p.age/p.life;f=-f+f*f*2;f=1-f;
-      p.x=p.tx+p.dx*f;p.y=p.ty+p.dy*f-(d.sink?(p.age/p.life)*.55:0);p.z=p.tz+p.dz*f;
+      p.x=p.tx+p.dx*f;p.y=p.ty+p.dy*f+(d.sink?f:0);p.z=p.tz+p.dz*f;
       continue;
     }
     if(d.behavior==="trail"){
@@ -555,7 +637,17 @@ function stepSim(){
     }
     if(d.grav)p.vy-=d.grav;
     if(d.rise)p.vy+=d.rise*(1-Math.min(1,p.age/p.life*.5));
+    const py0=p.y;
     p.x+=p.vx;p.y+=p.vy;p.z+=p.vz;
+    if(gCol&&!d.noPhys&&p.x>=cgx-CR&&p.x<=cgx+CR&&p.z>=cgz-CR&&p.z<=cgz+CR){
+      if(py0>=0&&p.y<0&&p.vy<0){ // landing on top
+        p.y=.001;p.vy=0;p.vx*=.7;p.vz*=.7;
+      }else if(py0<=0&&p.y>0&&p.vy>0){ // pressing on the underside
+        p.y=-.001;p.vy=0;
+        if(d.ySlide){p.vx*=1.15;p.vz*=1.15;
+          const m=Math.hypot(p.vx,p.vz);if(m>.4){p.vx*=.4/m;p.vz*=.4/m;}}
+      }
+    }
     if(d.drag){p.vx*=d.drag;p.vy*=d.drag;p.vz*=d.drag;}
     if(d.lerpFrom)p.col=lerpC(d.lerpFrom,d.lerpTo,p.age/p.life);
   }
@@ -596,7 +688,7 @@ function draw(){
       ctx.lineTo(c.x,c.y);ctx.lineTo(e.x,e.y);ctx.closePath();ctx.fill();
     }
   }
-  for(let i=-R;i<=R;i++){
+  if($("gridChk").checked)for(let i=-R;i<=R;i++){
     line3(gx-R,0,gz+i,gx+R,0,gz+i,i===0&&gz+i===0?"#3a4a6a":"#20263a",1);
     line3(gx+i,0,gz-R,gx+i,0,gz+R,i===0&&gx+i===0?"#3a4a6a":"#20263a",1);
   }
@@ -605,18 +697,33 @@ function draw(){
   line3(origin.x,origin.y-.4,origin.z,origin.x,origin.y+.4,origin.z,"#55ff7f",2);
   line3(origin.x,origin.y,origin.z-.4,origin.x,origin.y,origin.z+.4,"#5588ff",2);
   // particles depth-sorted
+  let camP=null;
+  if($("groundChk").checked){
+    const cy2=Math.cos(cam.yaw),sy2=Math.sin(cam.yaw),cp2=Math.cos(cam.pitch),sp2=Math.sin(cam.pitch);
+    camP={x:origin.x-cam.dist*cp2*sy2,y:origin.y-cam.dist*sp2,z:origin.z-cam.dist*cp2*cy2};
+  }
+  const hidByGround=p=>{
+    if(!camP)return false;
+    if((camP.y>=0)===(p.y>=0))return false;
+    const t=camP.y/(camP.y-p.y);
+    if(!(t>0&&t<1))return false;
+    const ix=camP.x+(p.x-camP.x)*t,iz=camP.z+(p.z-camP.z)*t;
+    return ix>=gx-R&&ix<=gx+R&&iz>=gz-R&&iz<=gz+R;
+  };
   const drawable=[];
   for(const p of particles){
     if(p.hidden>0)continue;
+    if(hidByGround(p))continue;
     const pr=project(p.x,p.y,p.z);
     if(pr)drawable.push([pr,p]);
   }
   if(drawable.length<15000)drawable.sort((a,b)=>b[0].d-a[0].d);
   for(const [pr,p] of drawable){
     const d=p.def,t=p.age/p.life;
-    let sz=d.size*pr.s;
+    let sz=d.size*(d.noSzVar?1:p.szm)*pr.s;
     if(d.curve==="flame")sz*=1-t*t*.5;
     else if(d.curve==="pop")sz*=Math.min(1,p.age*32/p.life);
+    else if(d.curve==="grow")sz*=.5+.5*Math.min(1,t*2.5);
     else if(d.shrink)sz*=1-t*.8;
     if(sz<1*devicePixelRatio)sz=1*devicePixelRatio;
     let alpha=1;
@@ -689,8 +796,9 @@ cv.addEventListener("pointermove",e=>{
     pinch={d:nd};return;
   }
   if(!drag)return;
-  cam.yaw-=(e.clientX-drag.x)*.008;
-  cam.pitch=Math.min(1.55,Math.max(-1.55,cam.pitch-(e.clientY-drag.y)*.008));
+  const inv=$("invChk").checked?-1:1;
+  cam.yaw+=inv*(e.clientX-drag.x)*.008;
+  cam.pitch=Math.min(1.55,Math.max(-1.55,cam.pitch+inv*(e.clientY-drag.y)*.008));
   drag={x:e.clientX,y:e.clientY};
 });
 function endPtr(e){pinchPts.delete(e.pointerId);if(pinchPts.size<2)pinch=null;if(pinchPts.size===0){drag=null;cv.classList.remove("dragging");}}
@@ -718,6 +826,7 @@ $("resetOrigin").onclick=()=>{origin.x=0;origin.y=1;origin.z=0;$("ox").value=0;$
 
 // controls
 $("playBtn").onclick=()=>{playing=!playing;$("playBtn").textContent=playing?"Pause":"Play";};
+$("setBtn").onclick=()=>{const sp=$("setPanel");sp.style.display=sp.style.display==="none"?"flex":"none";};
 $("stepBtn").onclick=()=>{if(playing){playing=false;$("playBtn").textContent="Play";}stepSim();};
 $("burstBtn").onclick=()=>emitters.forEach(spawnFromEmitter);
 $("clearBtn").onclick=()=>{particles=[];};
