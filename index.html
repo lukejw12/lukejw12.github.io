@@ -46,6 +46,24 @@
   #errors .e{color:#fc5454} #errors .w{color:#fcfc54} #errors .ok{color:#54fc54}
   .origin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   kbd{background:#000;color:#e0e0e0;padding:0 6px;border:1px solid #a0a0a0}
+  .tabs{display:flex;gap:4px;margin:10px 0 0}
+  .tab{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#6b6b6b;color:#d0d0d0;
+    text-shadow:2px 2px #3f3f3f;border:2px solid;border-color:#a0a0a0 #2f2f2f #2f2f2f #a0a0a0;
+    border-bottom:none;padding:5px 18px 3px;cursor:pointer}
+  .tab:hover{background:#8a95c4;color:#fcfc9c}
+  .tab.active{background:#c6c6c6;color:#fff;border-color:#fff #555 #c6c6c6 #fff}
+  #tab-gen{flex-direction:column;align-items:stretch;gap:8px}
+  .genrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .genrow input{background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'MinecraftTTF','VT323',monospace;font-size:18px;padding:3px 6px}
+  .genout{display:block;background:#000;color:#54fc54;padding:4px 10px;
+    border:2px solid #a0a0a0;font-size:18px;word-break:break-all;max-width:100%;box-sizing:border-box}
+  /* let inputs shrink on narrow screens so output stays on-screen */
+  @media(max-width:700px){
+    .genrow input{max-width:100%;flex:1 1 70px}
+    .genout{font-size:16px}
+    .wrap{padding:8px}
+  }
   .kofi{margin-left:auto;font-size:19px;text-decoration:none;background:#29abe0;color:#fff;
     text-shadow:2px 2px #14556e;border:2px solid;border-color:#a8dff5 #14556e #14556e #a8dff5;padding:5px 16px 3px}
   .kofi:hover{background:#3dbbee;color:#fcfc9c}
@@ -68,7 +86,13 @@
     <div class="hud" id="hud"></div>
   </div>
 
-  <div class="controls">
+  <div class="tabs">
+    <button class="tab active" data-tab="play">Playback</button>
+    <button class="tab" data-tab="scene">Scene</button>
+    <button class="tab" data-tab="gen">Generator</button>
+  </div>
+
+  <div class="controls tabbody" id="tab-play">
     <button id="playBtn" class="primary">Pause</button>
     <button id="stepBtn">Step</button>
     <button id="burstBtn">Burst Once</button>
@@ -77,33 +101,61 @@
     <label><input type="checkbox" id="loopChk" checked> loop every</label>
     <input type="number" id="loopTicks" value="1" min="1" max="100" step="1"><label>ticks</label>
     <div class="sep"></div>
-    <label><input type="checkbox" id="groundChk"> Solid Ground</label>
-    <div class="sep"></div>
     <label>speed x<input type="number" id="tps" value="1" min="0" step="0.25" style="width:60px"></label>
     <div class="sep"></div>
-    <label>zoom <input type="range" id="zoom" min="2" max="60" step="0.1" value="18"></label>
-    <div class="sep"></div>
-    <button id="setBtn">Settings</button>
+    <label>zoom <input type="range" id="zoom" min="2" max="300" step="0.5" value="18"></label>
   </div>
 
-  <div class="controls" id="setPanel" style="display:none">
-    <label><input type="checkbox" id="invChk"> Invert Camera</label>
-    <label><input type="checkbox" id="gcolChk" checked> Ground Collision</label>
-    <label><input type="checkbox" id="gridChk" checked> Show Grid</label>
-  </div>
-
-  <div class="controls origin-row">
-    <label style="color:#1c1c1c">Origin (where <kbd>~ ~ ~</kbd> resolves):</label>
+  <div class="controls tabbody origin-row" id="tab-scene" style="display:none">
+    <label style="color:#1c1c1c">Origin (<kbd>~ ~ ~</kbd>):</label>
     <label>X <input type="number" id="ox" value="0" step="0.5"></label>
     <label>Y <input type="number" id="oy" value="1" step="0.5"></label>
     <label>Z <input type="number" id="oz" value="0" step="0.5"></label>
     <button id="resetOrigin">Reset</button>
+    <div class="sep"></div>
+    <label><input type="checkbox" id="groundChk"> Solid Ground</label>
+    <label><input type="checkbox" id="gcolChk" checked> Ground Collision</label>
+    <label><input type="checkbox" id="gridChk" checked> Show Grid</label>
+    <label><input type="checkbox" id="invChk"> Invert Camera</label>
+  </div>
+
+  <div class="controls tabbody" id="tab-gen" style="display:none">
+    <div class="genrow">
+      <label>particle</label>
+      <input list="ptypes" id="gType" value="flame" style="width:220px">
+      <datalist id="ptypes"></datalist>
+      <div id="gOpts" class="genrow"></div>
+    </div>
+    <div class="genrow">
+      <label>pos</label>
+      <input id="gX" value="~" style="width:60px">
+      <input id="gY" value="~" style="width:60px">
+      <input id="gZ" value="~" style="width:60px">
+      <div class="sep"></div>
+      <label>delta</label>
+      <input id="gDX" value="0" style="width:60px">
+      <input id="gDY" value="0" style="width:60px">
+      <input id="gDZ" value="0" style="width:60px">
+      <div class="sep"></div>
+      <label>speed</label>
+      <input id="gSpeed" value="0" style="width:60px">
+      <label>count</label>
+      <input id="gCount" value="1" style="width:60px">
+      <label><input type="checkbox" id="gForce"> force</label>
+    </div>
+    <div class="genrow"><code id="gOut" class="genout"></code></div>
+    <div class="genrow">
+      <button id="gCopy">Copy</button>
+      <button id="gSend" class="primary">Send To Renderer</button>
+      <span class="hint" id="gNote"></span>
+    </div>
   </div>
 
   <div>
     <textarea id="cmds" spellcheck="false" placeholder="particle minecraft:flame ~ ~1 ~ 0.3 0.3 0.3 0.02 20"></textarea>
     <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
       <button id="applyBtn" class="primary">Apply Commands</button>
+      <button id="clearCmds">Clear Commands</button>
       <span class="hint">one per line, ctrl+enter to apply</span>
     </div>
     <div id="errors"></div>
@@ -159,7 +211,8 @@ function ensureSprites(name){
   }
 }
 function tinted(img,col){
-  const key=img.src+"|"+col;
+  // quantize the color into the key so transitions reuse tints instead of rebuilding
+  const key=img.src+"|"+((col[0]>>3)<<10|(col[1]>>3)<<5|(col[2]>>3));
   if(tintCache[key])return tintCache[key];
   if(!img.complete||!img.naturalWidth)return img;
   const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;
@@ -609,7 +662,7 @@ function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
 function stepSim(){
   tick++;
   const chk=$("loopChk").checked,iv=Math.max(1,parseInt($("loopTicks").value)||1);
-  const gCol=$("groundChk").checked&&$("gcolChk").checked;
+  const gCol=elGround.checked&&elGcol.checked;
   const cgx=Math.floor(origin.x),cgz=Math.floor(origin.z),CR=8;
   if(chk&&tick%iv===0)emitters.forEach(spawnFromEmitter);
   for(let i=particles.length-1;i>=0;i--){
@@ -656,7 +709,9 @@ function stepSim(){
 // renderer
 const cv=$("cv"),ctx=cv.getContext("2d");
 const cam={yaw:.7,pitch:.45,dist:18};
-function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;}
+// cap render res, phones report dpr 2-3 and draw way more pixels than needed
+const DPR=Math.min(1.5,devicePixelRatio||1);
+function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*DPR;cv.height=r.height*DPR;}
 window.addEventListener("resize",resize);
 function project(x,y,z){
   const dx=x-origin.x,dy=y-origin.y,dz=z-origin.z;
@@ -676,9 +731,10 @@ function line3(x1,y1,z1,x2,y2,z2,style,w){
 }
 function draw(){
   ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.imageSmoothingEnabled=false;
   const g=Math.floor;
   const gx=g(origin.x),gz=g(origin.z),R=8;
-  if($("groundChk").checked){
+  if(elGround.checked){
     for(let ix=-R;ix<R;ix++)for(let iz=-R;iz<R;iz++){
       const a=project(gx+ix,0,gz+iz),b=project(gx+ix+1,0,gz+iz),
             c=project(gx+ix+1,0,gz+iz+1),e=project(gx+ix,0,gz+iz+1);
@@ -688,7 +744,7 @@ function draw(){
       ctx.lineTo(c.x,c.y);ctx.lineTo(e.x,e.y);ctx.closePath();ctx.fill();
     }
   }
-  if($("gridChk").checked)for(let i=-R;i<=R;i++){
+  if(elGrid.checked)for(let i=-R;i<=R;i++){
     line3(gx-R,0,gz+i,gx+R,0,gz+i,i===0&&gz+i===0?"#3a4a6a":"#20263a",1);
     line3(gx+i,0,gz-R,gx+i,0,gz+R,i===0&&gx+i===0?"#3a4a6a":"#20263a",1);
   }
@@ -698,7 +754,7 @@ function draw(){
   line3(origin.x,origin.y,origin.z-.4,origin.x,origin.y,origin.z+.4,"#5588ff",2);
   // particles depth-sorted
   let camP=null;
-  if($("groundChk").checked){
+  if(elGround.checked){
     const cy2=Math.cos(cam.yaw),sy2=Math.sin(cam.yaw),cp2=Math.cos(cam.pitch),sp2=Math.sin(cam.pitch);
     camP={x:origin.x-cam.dist*cp2*sy2,y:origin.y+cam.dist*sp2,z:origin.z-cam.dist*cp2*cy2};
   }
@@ -725,7 +781,7 @@ function draw(){
     else if(d.curve==="pop")sz*=Math.min(1,p.age*32/p.life);
     else if(d.curve==="grow")sz*=.5+.5*Math.min(1,t*2.5);
     else if(d.shrink)sz*=1-t*.8;
-    if(sz<1*devicePixelRatio)sz=1*devicePixelRatio;
+    if(sz<1*DPR)sz=1*DPR;
     let alpha=1;
     if(d.fade&&t>.7)alpha=1-(t-.7)/.3;
     if(d.flicker)alpha*=rand(.4,1);
@@ -749,7 +805,6 @@ function draw(){
     }
     if(img){
       if(d.tint)img=tinted(img,p.col);
-      ctx.imageSmoothingEnabled=false;
       if(crop)ctx.drawImage(img,crop[0],crop[1],crop[2],crop[3],pr.x-sz,pr.y-sz,sz*2,sz*2);
       else ctx.drawImage(img,pr.x-sz,pr.y-sz,sz*2,sz*2);
     }else{
@@ -761,11 +816,13 @@ function draw(){
 }
 
 // loop
+// cache the checkbox nodes, i read them every frame
+const elGround=$("groundChk"),elGrid=$("gridChk"),elInv=$("invChk"),elGcol=$("gcolChk"),elTps=$("tps");
 let playing=true,acc=0,last=performance.now(),fps=60;
 function frame(now){
   const dt=Math.min(200,now-last);last=now;
   fps=fps*.92+(1000/Math.max(1,dt))*.08;
-  const mult=parseFloat($("tps").value);
+  const mult=parseFloat(elTps.value);
   if(playing&&mult>0){
     acc+=dt;const tickMs=50/mult;let n=0;
     while(acc>=tickMs&&n<80){stepSim();acc-=tickMs;n++;}
@@ -792,11 +849,11 @@ cv.addEventListener("pointermove",e=>{
   if(pinchPts.size===2){
     const[a,b]=[...pinchPts.values()];
     const nd=Math.hypot(a.x-b.x,a.y-b.y);
-    if(pinch&&pinch.d>0){cam.dist=Math.min(60,Math.max(2,cam.dist*pinch.d/nd));$("zoom").value=cam.dist;}
+    if(pinch&&pinch.d>0){cam.dist=Math.min(300,Math.max(2,cam.dist*pinch.d/nd));$("zoom").value=cam.dist;}
     pinch={d:nd};return;
   }
   if(!drag)return;
-  const inv=$("invChk").checked?-1:1;
+  const inv=elInv.checked?-1:1;
   cam.yaw+=(e.clientX-drag.x)*.008;
   cam.pitch=Math.min(1.55,Math.max(-1.55,cam.pitch+inv*(e.clientY-drag.y)*.008));
   drag={x:e.clientX,y:e.clientY};
@@ -804,18 +861,18 @@ cv.addEventListener("pointermove",e=>{
 function endPtr(e){pinchPts.delete(e.pointerId);if(pinchPts.size<2)pinch=null;if(pinchPts.size===0){drag=null;cv.classList.remove("dragging");}}
 cv.addEventListener("pointerup",endPtr);cv.addEventListener("pointercancel",endPtr);
 cv.addEventListener("wheel",e=>{e.preventDefault();
-  cam.dist=Math.min(60,Math.max(2,cam.dist*(e.deltaY>0?1.1:0.9)));$("zoom").value=cam.dist;},{passive:false});
+  cam.dist=Math.min(300,Math.max(2,cam.dist*(e.deltaY>0?1.1:0.9)));$("zoom").value=cam.dist;},{passive:false});
 $("zoom").addEventListener("input",e=>cam.dist=parseFloat(e.target.value));
 cv.addEventListener("dblclick",e=>{ // pick ground point under cursor
   const rect=cv.getBoundingClientRect();
-  const mx=(e.clientX-rect.left)*devicePixelRatio,my=(e.clientY-rect.top)*devicePixelRatio;
+  const mx=(e.clientX-rect.left)*DPR,my=(e.clientY-rect.top)*DPR;
   let best=null;
   for(let x=origin.x-10;x<=origin.x+10;x+=.25)for(let z=origin.z-10;z<=origin.z+10;z+=.25){
     const pr=project(x,0,z);if(!pr)continue;
     const dd=(pr.x-mx)**2+(pr.y-my)**2;
     if(!best||dd<best.dd)best={x,z,dd};
   }
-  if(best&&best.dd<(30*devicePixelRatio)**2){
+  if(best&&best.dd<(30*DPR)**2){
     origin.x=Math.round(best.x*2)/2;origin.z=Math.round(best.z*2)/2;
     $("ox").value=origin.x;$("oz").value=origin.z;
   }
@@ -826,7 +883,110 @@ $("resetOrigin").onclick=()=>{origin.x=0;origin.y=1;origin.z=0;$("ox").value=0;$
 
 // controls
 $("playBtn").onclick=()=>{playing=!playing;$("playBtn").textContent=playing?"Pause":"Play";};
-$("setBtn").onclick=()=>{const sp=$("setPanel");sp.style.display=sp.style.display==="none"?"flex":"none";};
+
+// tab switch. keep hidden bodies in the dom, i read their checkboxes each frame
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===b));
+  document.querySelectorAll(".tabbody").forEach(x=>x.style.display="none");
+  $("tab-"+b.dataset.tab).style.display="flex";
+});
+
+// per-particle option fields for the generator. [key, kind, default].
+// particles not listed get no extra boxes
+const GEN_FIELDS={
+  block:[["block_state","block","stone"]],
+  block_marker:[["block_state","block","barrier"]],
+  block_crumble:[["block_state","block","stone"]],
+  dust_pillar:[["block_state","block","stone"]],
+  falling_dust:[["block_state","block","sand"]],
+  item:[["item","item","apple"]],
+  dust:[["color","color","1 0 0"],["scale","num","1"]],
+  dust_color_transition:[["from_color","color","1 0 0"],["to_color","color","0 0 1"],["scale","num","1"]],
+  entity_effect:[["color","color","1 0 0 1"]],
+  sculk_charge:[["roll","num","0"]],
+  shriek:[["delay","int","0"]],
+  dragon_breath:[["power","num",""]],
+  trail:[["target","pos","0 0 0"],["color","color","1 1 1"],["duration","int","20"]],
+  vibration:[["destination","psource","0 0 0"],["arrival_in_ticks","int","20"]]
+};
+(()=>{
+  const dl=$("ptypes");
+  // fill the dropdown from the physics table. skip elder_guardian, it just errors
+  Object.keys(P).filter(n=>n.indexOf(":")<0&&n!=="elder_guardian").sort().forEach(n=>{
+    const o=document.createElement("option");o.value=n;dl.appendChild(o);
+  });
+  const g=id=>($(id)?$(id).value.trim():"");
+  const type=()=>g("gType").replace(/^minecraft:/,"")||"flame";
+  const ns=v=>v.indexOf(":")<0?"minecraft:"+v:v;
+  const nums=v=>v.split(/[\s,]+/).filter(Boolean).join(",");
+
+// rebuild the option boxes for the current particle
+  function fields(){
+    const spec=GEN_FIELDS[type()],wrap=$("gOpts");
+    wrap.innerHTML="";
+    if(!spec){$("gNote").textContent="";return;}
+    spec.forEach(([key,kind,def])=>{
+      const l=document.createElement("label");l.textContent=key;
+      const i=document.createElement("input");i.id="gf_"+key;i.value=def;
+      i.style.width=kind==="block"||kind==="item"?"170px":
+        kind==="color"||kind==="pos"||kind==="psource"?"110px":"60px";
+      if(kind==="block")i.placeholder="stone";
+      if(kind==="item")i.placeholder="apple";
+      i.addEventListener("input",build);
+      wrap.appendChild(l);wrap.appendChild(i);
+    });
+    $("gNote").textContent="no brackets needed, ids get namespaced for you";
+  }
+
+  // build snbt from the boxes. quote ids, a raw {} or [] passes through
+  function comp(){
+    const spec=GEN_FIELDS[type()];
+    if(!spec)return "";
+    const out=[];
+    spec.forEach(([key,kind])=>{
+      let v=g("gf_"+key);
+      if(!v)return;
+      if(v[0]==="{"||v[0]==="["){out.push(key+":"+v);return;} // raw snbt, pass it through
+      if(kind==="block")out.push(key+':"'+ns(v)+'"');
+      else if(kind==="item")out.push(key+':{id:"'+ns(v)+'"}');
+      else if(kind==="color"||kind==="pos")out.push(key+":["+nums(v)+"]");
+      else if(kind==="psource")out.push(key+':{type:"minecraft:block",pos:['+nums(v)+"]}");
+      else out.push(key+":"+v);
+    });
+    return out.length?"{"+out.join(",")+"}":"";
+  }
+
+  function build(){
+    let line="particle minecraft:"+type()+comp()+" "+
+      [g("gX")||"~",g("gY")||"~",g("gZ")||"~"].join(" ")+" "+
+      [g("gDX")||"0",g("gDY")||"0",g("gDZ")||"0"].join(" ")+" "+
+      (g("gSpeed")||"0")+" "+(g("gCount")||"0");
+    if($("gForce").checked)line+=" force";
+    $("gOut").textContent=line;
+    return line;
+  }
+  window.genBuild=build;
+
+  $("gType").addEventListener("input",()=>{fields();build();});
+  ["gX","gY","gZ","gDX","gDY","gDZ","gSpeed","gCount","gForce"]
+    .forEach(id=>$(id).addEventListener("input",build));
+
+  $("gCopy").onclick=()=>{
+    const line=build(),btn=$("gCopy");
+    const ok=()=>{btn.textContent="Copied!";setTimeout(()=>btn.textContent="Copy",1200);};
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(line).then(ok,()=>prompt("copy this:",line));
+    else prompt("copy this:",line);
+  };
+// append on a new line, don't wipe the box
+  $("gSend").onclick=()=>{
+    const box=$("cmds"),line=build();
+    box.value=box.value.trim()?box.value.replace(/\s+$/,"")+"\n"+line:line;
+    if(window.autoGrow)window.autoGrow();
+    particles=[];apply();
+  };
+  fields();build();
+})();
 $("stepBtn").onclick=()=>{if(playing){playing=false;$("playBtn").textContent="Play";}stepSim();};
 $("burstBtn").onclick=()=>emitters.forEach(spawnFromEmitter);
 $("clearBtn").onclick=()=>{particles=[];};
@@ -837,6 +997,21 @@ function apply(){
     (em.length?`<div class="ok">${em.length} command${em.length>1?"s":""} loaded</div>`:"");
 }
 $("applyBtn").onclick=()=>{particles=[];apply();};
+// clear the command box and everything loaded from it
+$("clearCmds").onclick=()=>{
+  $("cmds").value="";emitters=[];particles=[];
+  $("errors").innerHTML="";autoGrow();$("cmds").focus();
+};
+
+// grow the box to fit its lines, no inner scrollbar
+window.autoGrow=autoGrow;
+function autoGrow(){
+  const t=$("cmds");
+  t.style.height="auto";
+  t.style.height=Math.max(150,t.scrollHeight+4)+"px";
+}
+$("cmds").addEventListener("input",autoGrow);
+autoGrow();
 $("cmds").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){particles=[];apply();}});
 
 resize();apply();requestAnimationFrame(frame);
