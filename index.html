@@ -662,7 +662,7 @@ function project(x,y,z){
   const dx=x-origin.x,dy=y-origin.y,dz=z-origin.z;
   const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
   let rx=dx*cy-dz*sy, rz=dx*sy+dz*cy;
-  let ry=dy*cp-rz*sp; rz=dy*sp+rz*cp;
+  let ry=dy*cp+rz*sp; rz=rz*cp-dy*sp;
   const depth=rz+cam.dist;
   if(depth<=.3)return null;
   const f=(cv.height*1.15)/depth;
@@ -700,7 +700,7 @@ function draw(){
   let camP=null;
   if($("groundChk").checked){
     const cy2=Math.cos(cam.yaw),sy2=Math.sin(cam.yaw),cp2=Math.cos(cam.pitch),sp2=Math.sin(cam.pitch);
-    camP={x:origin.x-cam.dist*cp2*sy2,y:origin.y-cam.dist*sp2,z:origin.z-cam.dist*cp2*cy2};
+    camP={x:origin.x-cam.dist*cp2*sy2,y:origin.y+cam.dist*sp2,z:origin.z-cam.dist*cp2*cy2};
   }
   const hidByGround=p=>{
     if(!camP)return false;
@@ -797,7 +797,7 @@ cv.addEventListener("pointermove",e=>{
   }
   if(!drag)return;
   const inv=$("invChk").checked?-1:1;
-  cam.yaw+=inv*(e.clientX-drag.x)*.008;
+  cam.yaw+=(e.clientX-drag.x)*.008;
   cam.pitch=Math.min(1.55,Math.max(-1.55,cam.pitch+inv*(e.clientY-drag.y)*.008));
   drag={x:e.clientX,y:e.clientY};
 });
