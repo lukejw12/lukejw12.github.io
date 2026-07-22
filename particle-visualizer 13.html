@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Particle Visualizer 1.21.11</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+  *{box-sizing:border-box;image-rendering:pixelated}
+  body{margin:0;font-family:'VT323',monospace;font-size:19px;color:#3f3f3f;
+    background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
+      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png");
+    background-size:64px 64px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+  header h1{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
+  .splash{color:#fcfc54;text-shadow:2px 2px #3e3e14;transform:rotate(-4deg);display:inline-block;font-size:20px}
+  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
+  .viewport{position:relative;border:3px solid;border-color:#1c1c1c #6b6b6b #6b6b6b #1c1c1c;background:#0a0b10}
+  canvas{display:block;width:100%;height:480px;cursor:grab;touch-action:none}
+  canvas.dragging{cursor:grabbing}
+  .hud{position:absolute;top:6px;left:6px;font-size:17px;color:#e0e0e0;pointer-events:none;line-height:1.35;
+    text-shadow:2px 2px rgba(0,0,0,.9);background:rgba(80,80,80,.45);padding:3px 8px}
+  .hud b{color:#fff}
+  .hud .live{color:#54fc54}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0;padding:10px 12px;
+    background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff}
+  button{font-family:'VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;text-shadow:2px 2px #3f3f3f;
+    border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;padding:5px 16px 3px;cursor:pointer}
+  button:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
+  button:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
+  button.primary{background:#6d9c50;border-color:#c8e8b0 #2b451c #2b451c #c8e8b0}
+  button.primary:hover{background:#7cb35a;color:#fff}
+  label{color:#3f3f3f;display:flex;align-items:center;gap:6px}
+  input[type=number]{width:74px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'VT323',monospace;font-size:18px;padding:3px 6px}
+  input[type=number]:focus,textarea:focus{outline:none;border-color:#fff}
+  textarea::placeholder{color:#5a5a5a}
+  input[type=range]{accent-color:#5f5f5f}
+  input[type=checkbox]{accent-color:#6d9c50;width:16px;height:16px}
+  .sep{width:2px;height:26px;background:#a5a5a5;border-right:1px solid #fff}
+  textarea{width:100%;min-height:150px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'VT323',monospace;font-size:18px;padding:8px 10px;resize:vertical;line-height:1.45}
+  #errors{margin-top:8px;line-height:1.4;text-shadow:2px 2px rgba(0,0,0,.8)}
+  #errors .e{color:#fc5454} #errors .w{color:#fcfc54} #errors .ok{color:#54fc54}
+  .origin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  kbd{background:#000;color:#e0e0e0;padding:0 6px;border:1px solid #a0a0a0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Particle Visualizer</h1>
+    <span class="splash">Java 1.21.11!</span>
+    <span class="hint">drag to orbit, scroll to zoom, double click ground to move origin</span>
+  </header>
+
+  <div class="viewport">
+    <canvas id="cv"></canvas>
+    <div class="hud" id="hud"></div>
+  </div>
+
+  <div class="controls">
+    <button id="playBtn" class="primary">Pause</button>
+    <button id="burstBtn">Burst Once</button>
+    <button id="clearBtn">Clear Particles</button>
+    <div class="sep"></div>
+    <label><input type="checkbox" id="loopChk" checked> loop every</label>
+    <input type="number" id="loopTicks" value="2" min="1" max="100" step="1"><label>ticks</label>
+    <div class="sep"></div>
+    <label><input type="checkbox" id="groundChk"> Solid Ground</label>
+    <div class="sep"></div>
+    <label>zoom <input type="range" id="zoom" min="2" max="60" step="0.1" value="18"></label>
+  </div>
+
+  <div class="controls origin-row">
+    <label style="color:#1c1c1c">Origin (where <kbd>~ ~ ~</kbd> resolves):</label>
+    <label>X <input type="number" id="ox" value="0" step="0.5"></label>
+    <label>Y <input type="number" id="oy" value="1" step="0.5"></label>
+    <label>Z <input type="number" id="oz" value="0" step="0.5"></label>
+    <button id="resetOrigin">Reset</button>
+  </div>
+
+  <div>
+    <textarea id="cmds" spellcheck="false" placeholder="particle minecraft:flame ~ ~1 ~ 0.3 0.3 0.3 0.02 20"></textarea>
+    <div style="margin-top:8px;display:flex;gap:10px;align-items:center">
+      <button id="applyBtn" class="primary">Apply Commands</button>
+      <span class="hint">one per line, ctrl+enter to apply</span>
+    </div>
+    <div id="errors"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+// utilities
+const $=id=>document.getElementById(id);
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const rand=(a,b)=>a+Math.random()*(b-a);
+function popVel(vx,vy,vz){
+  vx+=(Math.random()*2-1)*.4;vy+=(Math.random()*2-1)*.4;vz+=(Math.random()*2-1)*.4;
+  const d=(Math.random()+Math.random()+1)*.15,l=Math.sqrt(vx*vx+vy*vy+vz*vz)||1;
+  return[vx/l*d*.4,vy/l*d*.4+.1,vz/l*d*.4];
+}
+const pick=a=>a[(Math.random()*a.length)|0];
+function hexToRgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function lerpC(c1,c2,t){return [c1[0]+(c2[0]-c1[0])*t|0,c1[1]+(c2[1]-c1[1])*t|0,c1[2]+(c2[2]-c1[2])*t|0];}
+function hsv(h,s,v){let f=(n,k=(n+h/60)%6)=>v-v*s*Math.max(Math.min(k,4-k,1),0);return[f(5)*255|0,f(3)*255|0,f(1)*255|0];}
+
+// vanilla textures via mcmeta mirror, colored quads as fallback
+const ASSETS="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/";
+const spriteSets={},imgCache={},tintCache={};
+function loadImage(url){
+  if(imgCache[url])return imgCache[url];
+  const im=new Image();im.crossOrigin="anonymous";im.src=url;
+  return imgCache[url]=im;
+}
+function ensureSprites(name){
+  if(spriteSets[name])return;
+  const set=spriteSets[name]={frames:[],ready:false};
+  fetch(ASSETS+"particles/"+name+".json").then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||!j.textures||!j.textures.length)return;
+    set.frames=j.textures.map(t=>loadImage(ASSETS+"textures/particle/"+t.replace(/^minecraft:/,"")+".png"));
+    set.ready=true;
+  }).catch(()=>{});
+}
+function tinted(img,col){
+  const key=img.src+"|"+col;
+  if(tintCache[key])return tintCache[key];
+  if(!img.complete||!img.naturalWidth)return img;
+  const c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;
+  const x=c.getContext("2d");
+  x.filter="brightness(1.5)";
+  x.drawImage(img,0,0);
+  x.filter="none";
+  x.globalCompositeOperation="multiply";
+  x.fillStyle=`rgb(${col[0]},${col[1]},${col[2]})`;
+  x.fillRect(0,0,c.width,c.height);
+  x.globalCompositeOperation="destination-in";
+  x.drawImage(img,0,0);
+  return tintCache[key]=c;
+}
+
+// particle physics table (rough vanilla approximations)
+const P={
+ flame:{colors:["#ffcc4d","#ff9a1f"],size:.09,life8:1,drag:.96,vel:.0008,curve:"flame"},
+ small_flame:{colors:["#ffcc4d","#ff9a1f"],size:.045,life8:1,drag:.96,vel:.0008,curve:"flame"},
+ soul_fire_flame:{colors:["#54e6d5","#2bb9d8"],size:.09,life8:1,drag:.96,vel:.0008,curve:"flame"},
+ smoke:{colors:["#5a5a5a","#6f6f6f","#484848"],size:.11,life8:1,drag:.96,rise:.008,vel:.002,curve:"pop"},
+ large_smoke:{colors:["#4c4c4c","#666666"],size:.2,life8:1,drag:.96,rise:.008,vel:.002,curve:"pop"},
+ campfire_cosy_smoke:{colors:["#3f3a36","#57504a"],size:.22,life:[80,130],drag:.99,vel:.0005,waft:1,randFrame:1},
+ campfire_signal_smoke:{colors:["#3f3a36","#57504a"],size:.24,life:[280,330],drag:.99,vel:.0005,waft:1,randFrame:1},
+ white_smoke:{colors:["#d9d9d9","#f0f0f0"],size:.12,life8:1,drag:.96,rise:.008,vel:.002,curve:"pop"},
+ end_rod:{colors:["#ffffff","#eafcff"],size:.08,life:[60,72],drag:.98,rise:.0025,vel:.001,shrink:1,glow:1},
+ dust:{colors:["#ff0000"],size:.1,life8:1,drag:.96,vel:.002,curve:"pop"},
+ crit:{colors:["#e8c088","#d4a86a"],size:.06,life:[7,30],drag:.7,grav:.02,vel:.12,velMul:.1,behavior:"crit",curve:"flame",tint:1},
+ enchanted_hit:{colors:["#8cf4ff","#b8f6ff"],size:.06,life:[7,30],drag:.7,grav:.02,vel:.12,velMul:.1,behavior:"crit",curve:"flame",tint:1},
+ happy_villager:{colors:["#5ee75e","#8bff8b"],size:.08,life:[14,24],drag:.98,rise:.02,vel:.002,glow:1},
+ angry_villager:{colors:["#b02525"],size:.1,life:[10,16],drag:.98,rise:.015,vel:.001},
+ heart:{colors:["#ff3a3a","#ff6b8a"],size:.11,life:[14,20],drag:.98,rise:.02,vel:.002},
+ note:{colors:["#hue"],size:.1,life:[6,7],drag:.66,vel:.001,behavior:"note",glow:1},
+ portal:{colors:["#e64dff","#a836b8","#66248f"],size:.09,life:[25,45],behavior:"portal",tint:1,sink:1},
+ reverse_portal:{colors:["#e64dff","#a836b8","#66248f"],size:.08,life:[25,45],drag:.98,rise:.02,vel:.006,tint:1},
+ enchant:{colors:["#e6e6ff","#b0b0c8","#8f8fa8"],size:.06,life:[20,40],behavior:"portal",tint:1},
+ cloud:{colors:["#f2f2f2","#e0e0e0"],size:.16,life8:1,drag:.96,vel:.02,behavior:"burst",curve:"pop"},
+ poof:{colors:["#dcdcdc","#bfbfbf"],size:.14,life8:1,drag:.96,vel:.02,behavior:"burst",curve:"pop"},
+ explosion:{colors:["#ffffff","#ffd9a0"],size:.6,life:[6,10],shrink:1},
+ electric_spark:{colors:["#fdf100","#fff8b0","#ffffff"],size:.06,life:[4,10],drag:.9,vel:.05,glow:1,shrink:1},
+ wax_on:{colors:["#ff9a2e","#ffc86e"],size:.07,life:[8,14],drag:.9,vel:.03,glow:1,shrink:1},
+ wax_off:{colors:["#e8e8e8","#fff2c8"],size:.07,life:[8,14],drag:.9,vel:.03,glow:1,shrink:1},
+ scrape:{colors:["#6fe0c8","#a8f0e0"],size:.07,life:[8,14],drag:.9,vel:.03,glow:1,shrink:1},
+ glow:{colors:["#e6ff8a","#c8f060"],size:.07,life:[16,30],drag:.96,vel:.004,glow:1,flicker:1},
+ firework:{colors:["#ffffff","#ffe9c8"],size:.07,life:[20,34],drag:.92,grav:.004,vel:.01,flicker:1,glow:1,shrink:1},
+ flash:{colors:["#ffffff"],size:1.6,life:[3,4],glow:1},
+ bubble:{colors:["#9ad8ff","#cdeeff"],size:.07,life8:1,drag:.85,rise:.002,vel:.005,velMul:.2},
+ bubble_pop:{colors:["#9ad8ff"],size:.05,life:[3,6],vel:.01},
+ dripping_water:{colors:["#3d63ff","#5a86ff"],size:.07,life:[30,50],behavior:"drip"},
+ falling_water:{colors:["#3d63ff"],size:.07,life:[20,40],grav:.06,drag:.98},
+ dripping_lava:{colors:["#ff8a1e","#ffb03d"],size:.07,life:[30,50],behavior:"drip",glow:1},
+ lava:{colors:["#ff7a00","#ffc03d"],size:.1,life:[10,20],grav:.06,drag:.96,vel:.08,behavior:"crit",glow:1},
+ snowflake:{colors:["#ffffff","#e8f4ff"],size:.07,life:[40,80],grav:.004,drag:.95,vel:.006},
+ soul:{colors:["#5ce0d8","#7ff0e8"],size:.11,life:[40,70],drag:.95,rise:.02,vel:.004,glow:1,shrink:1},
+ sculk_soul:{colors:["#2bd8d8","#0aa8b0"],size:.1,life:[30,60],drag:.95,rise:.015,vel:.004,glow:1,shrink:1},
+ sculk_charge_pop:{colors:["#0aa8b0"],size:.05,life:[6,12],vel:.02,glow:1},
+ witch:{colors:["#c800c8","#8a1bb0"],size:.08,life:[20,36],drag:.96,grav:.002,vel:.002,glow:1},
+ dragon_breath:{colors:["#cc4dff","#e08aff"],size:.1,life:[30,60],drag:.96,vel:.01,glow:1},
+ ash:{colors:["#7a7a86"],size:.05,life:[40,90],grav:.003,drag:.95,vel:.008},
+ white_ash:{colors:["#e0e0e6"],size:.05,life:[40,90],grav:.003,drag:.95,vel:.008},
+ mycelium:{colors:["#8a7f8f"],size:.04,life:[10,30],grav:.002,drag:.95,vel:.004},
+ totem_of_undying:{colors:["#8ae04d","#e0e04d"],size:.08,life:[20,40],drag:.9,grav:.02,vel:.15,behavior:"burst",glow:1,shrink:1},
+ composter:{colors:["#6ee04d"],size:.07,life:[8,16],drag:.9,vel:.02,glow:1},
+ sneeze:{colors:["#6ee04d"],size:.07,life:[10,20],drag:.96,grav:.01,vel:.01},
+ splash:{colors:["#5a86ff","#9ad8ff"],size:.06,life:[6,12],grav:.05,drag:.96,vel:.06,behavior:"crit"},
+ rain:{colors:["#5a86ff"],size:.05,life:[6,12],grav:.06,vel:.02},
+ cherry_leaves:{colors:["#ffb7d5","#f797c8"],size:.08,life:[100,200],behavior:"leaf"},
+ pale_oak_leaves:{colors:["#c8c4b8","#e0dcd0"],size:.08,life:[100,200],behavior:"leaf"},
+ tinted_leaves:{colors:["#78a848"],size:.08,life:[100,200],behavior:"leaf"},
+ spore_blossom_air:{colors:["#c8f0a0"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
+ crimson_spore:{colors:["#c83a4a"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
+ warped_spore:{colors:["#2bb9a8"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
+ nautilus:{colors:["#c8e6ff","#98b8d8"],size:.06,life:[20,40],behavior:"portal",tint:1},
+ damage_indicator:{colors:["#8a2b2b"],size:.08,life:[10,16],grav:.05,drag:.96,vel:.04,behavior:"crit",tint:1},
+ sweep_attack:{colors:["#e8e8e8"],size:.5,life:[4,6],shrink:1},
+ sonic_boom:{colors:["#3de0e8","#a0f4f8"],size:.5,life:[8,12],glow:1,shrink:1},
+ gust:{colors:["#d8e8f0","#b0c8d8"],size:.4,life:[10,14],shrink:1},
+ small_gust:{colors:["#d8e8f0"],size:.2,life:[8,12],shrink:1},
+ trial_spawner_detection:{colors:["#ff8a3d","#3de0e8"],size:.07,life:[16,30],drag:.95,vel:.02,glow:1},
+ ominous_spawning:{colors:["#4a5ac8","#7a8ae8"],size:.07,life:[16,30],behavior:"portal",tint:1},
+ raid_omen:{colors:["#c84a5a"],size:.07,life:[16,30],drag:.95,vel:.01,tint:1},
+ infested:{colors:["#8a8a9a"],size:.05,life:[10,20],vel:.02},
+ item_slime:{colors:["#6ec86e"],size:.08,life:[6,12],grav:.06,vel:.05,behavior:"crit"},
+ item_snowball:{colors:["#f0f8ff"],size:.08,life:[6,12],grav:.06,vel:.05,behavior:"crit"},
+ entity_effect:{colors:["#3d63ff"],size:.1,life:[10,20],drag:.96,vel:.004},
+ effect:{colors:["#hue"],size:.09,life:[8,16],drag:.9,vel:.01},
+ instant_effect:{colors:["#f0c8ff"],size:.09,life:[6,12],drag:.9,vel:.01},
+ dust_color_transition:{colors:["#ff0000"],size:.1,life8:1,drag:.96,vel:.002,curve:"pop",lerp:1},
+ block:{colors:["#8a8a8a"],size:.09,life:[10,24],grav:.06,drag:.96,vel:.05,behavior:"crit"},
+ falling_dust:{colors:["#c8a878"],size:.14,life:[30,70],grav:.012,drag:.98,vel:.002,noSpeed:1},
+ block_marker:{colors:["#e8e8e8"],size:.5,life:[60,60]},
+ dust_plume:{colors:["#c8b8a0","#a89880"],size:.12,life:[20,40],drag:.92,rise:.01,vel:.01,shrink:1},
+ trail:{colors:["#e8d8b0"],size:.08,life:[20,40],behavior:"trail",tint:1,glow:1},
+ firefly:{colors:["#d8ff5e"],size:.04,life:[60,120],drag:.98,vel:.006,glow:1,flicker:1},
+ underwater:{colors:["#3d5a8a"],size:.03,life:[20,40],vel:.004},
+ dolphin:{colors:["#8ab8c8"],size:.07,life:[8,16],vel:.01},
+ squid_ink:{colors:["#1a1a2a"],size:.1,life:[20,40],grav:.01,drag:.95,vel:.02},
+ glow_squid_ink:{colors:["#2bd8d8"],size:.1,life:[20,40],grav:.01,drag:.95,vel:.02,glow:1},
+};
+Object.assign(P,{
+ dust_pillar:{colors:["#b0a290"],size:.09,life:[12,30],grav:.045,drag:.98,vel:.03,up:[.15,.4]},
+ block_crumble:{colors:["#b0b0b0"],size:.07,life:[24,44],grav:.03,drag:.98,vel:.002,behavior:"drip",hangT:[0,10],noSpeed:1},
+ bubble_column_up:{colors:["#9ad8ff","#cdeeff"],size:.07,life:[10,25],drag:.95,rise:.04,vel:.01},
+ current_down:{colors:["#8ab8d8"],size:.07,life:[20,40],drag:.95,grav:.03,vel:.02},
+ copper_fire_flame:{colors:["#7de08a","#3dc86e"],size:.09,life8:1,drag:.96,vel:.0008,curve:"flame"},
+ dripping_dripstone_lava:{colors:["#ff8a1e"],size:.07,life:[30,50],behavior:"drip"},
+ dripping_dripstone_water:{colors:["#3d63ff"],size:.07,life:[30,50],behavior:"drip"},
+ dripping_honey:{colors:["#f8b81e"],size:.07,life:[30,60],behavior:"drip"},
+ dripping_obsidian_tear:{colors:["#7a2bb0"],size:.07,life:[30,60],behavior:"drip"},
+ falling_dripstone_lava:{colors:["#ff8a1e"],size:.07,life:[20,40],grav:.06,drag:.98},
+ falling_dripstone_water:{colors:["#3d63ff"],size:.07,life:[20,40],grav:.06,drag:.98},
+ falling_honey:{colors:["#f8b81e"],size:.07,life:[20,40],grav:.05,drag:.98},
+ falling_lava:{colors:["#ff8a1e"],size:.07,life:[20,40],grav:.06,drag:.98},
+ falling_nectar:{colors:["#f8d84d"],size:.06,life:[20,40],grav:.04,drag:.98},
+ falling_obsidian_tear:{colors:["#7a2bb0"],size:.07,life:[20,40],grav:.05,drag:.98},
+ falling_spore_blossom:{colors:["#e8a8c8"],size:.06,life:[40,80],grav:.005,drag:.96},
+ landing_honey:{colors:["#f8b81e"],size:.07,life:[60,120]},
+ landing_lava:{colors:["#ff8a1e"],size:.07,life:[60,120]},
+ landing_obsidian_tear:{colors:["#7a2bb0"],size:.07,life:[60,120]},
+ egg_crack:{colors:["#f0ead8","#d8cfa8"],size:.06,life:[6,14],grav:.05,drag:.96,vel:.03,behavior:"crit"},
+ elder_guardian:{colors:["#7a95a0"],size:1.4,life:[28,32],shrink:1},
+ fishing:{colors:["#5a86ff","#9ad8ff"],size:.06,life:[6,12],grav:.05,drag:.96,vel:.05,behavior:"crit"},
+ spit:{colors:["#e8e8e0"],size:.1,life:[10,20],grav:.03,drag:.98,vel:.01},
+ shriek:{colors:["#1e4a5a","#2b6e8a"],size:.5,life:[28,32],rise:.01},
+ sculk_charge:{colors:["#0aa8b0","#1ac8c8"],size:.1,life:[20,40],drag:.95,vel:.004,glow:1},
+ trial_omen:{colors:["#3d8ae0","#7ab8f0"],size:.08,life:[16,30],behavior:"portal",tint:1},
+ trial_spawner_detection_ominous:{colors:["#4a5ac8","#7a8ae8"],size:.07,life:[16,30],drag:.95,vel:.02,glow:1},
+ vault_connection:{colors:["#ff9a3d","#ffc87a"],size:.07,life:[16,30],behavior:"portal"},
+ vibration:{colors:["#0ac8c8"],size:.12,life:[20,21],behavior:"trail",glow:1},
+ item:{colors:["#b0b0b0"],size:.09,life:[10,24],grav:.06,drag:.96,vel:.05,behavior:"crit"},
+ item_cobweb:{colors:["#e8e8e8"],size:.09,life:[10,24],grav:.06,drag:.96,vel:.05,behavior:"crit"},
+ explosion_emitter:{emits:"explosion",n:6,spread:2,colors:["#ffffff"],size:.6,life:[6,10],shrink:1},
+ gust_emitter_large:{emits:"gust",n:3,spread:1.5,colors:["#d8e8f0"],size:.4,life:[10,14],shrink:1},
+ gust_emitter_small:{emits:"small_gust",n:2,spread:.8,colors:["#d8e8f0"],size:.2,life:[8,12],shrink:1},
+ geyser:{emits:"geyser_plume",n:4,spread:.4,colors:["#d8e8f0"],size:.3,life:[8,12],shrink:1},
+ geyser_base:{colors:["#c8d8e0"],size:.2,life:[10,20],drag:.9,vel:.03,curve:"pop"},
+ geyser_plume:{colors:["#e0ecf0","#c8d8e0"],size:.18,life:[20,40],drag:.96,rise:.06,vel:.01,curve:"pop"},
+ geyser_poof:{colors:["#e0ecf0"],size:.14,life8:1,drag:.96,vel:.02,behavior:"burst",curve:"pop"},
+ noxious_gas:{colors:["#8aa03d","#a8b85a"],size:.12,life:[30,60],drag:.96,rise:.008,vel:.004,curve:"pop"},
+ noxious_gas_cloud:{colors:["#8aa03d"],size:.3,life:[40,80],drag:.98,rise:.005,vel:.003,curve:"pop"},
+ orange_poplar_leaves:{colors:["#e08a2b"],size:.08,life:[100,200],behavior:"leaf"},
+ red_poplar_leaves:{colors:["#c84a2b"],size:.08,life:[100,200],behavior:"leaf"},
+ yellow_poplar_leaves:{colors:["#e0c02b"],size:.08,life:[100,200],behavior:"leaf"},
+ pause_mob_growth:{colors:["#8ab8f0"],size:.08,life:[14,24],drag:.98,rise:.02,vel:.002,glow:1},
+ reset_mob_growth:{colors:["#8af0a8"],size:.08,life:[14,24],drag:.98,rise:.02,vel:.002,glow:1},
+ sulfur_bubbles:{colors:["#e0d84d"],size:.07,life:[10,25],drag:.95,rise:.05,vel:.01},
+ sulfur_cube_goo:{colors:["#c8c03d"],size:.08,life:[16,30],grav:.04,drag:.96,vel:.02},
+});
+P["minecraft:barrier"]=P.block_marker;
+["dust","dust_color_transition","effect","instant_effect","entity_effect","note"].forEach(n=>P[n].tint=1);
+// these ignore the command's speed/delta motion in vanilla, their providers drive themselves
+["ash","white_ash","crimson_spore","warped_spore","spore_blossom_air","underwater","mycelium",
+ "dripping_water","dripping_lava","lava","note","flash","explosion","sweep_attack","sonic_boom",
+ "gust","small_gust","block_marker","firefly","effect","instant_effect","entity_effect","witch",
+ "cherry_leaves","pale_oak_leaves","tinted_leaves","orange_poplar_leaves","red_poplar_leaves",
+ "yellow_poplar_leaves","dripping_dripstone_lava","dripping_dripstone_water","dripping_honey",
+ "dripping_obsidian_tear","landing_honey","landing_lava","landing_obsidian_tear","shriek",
+ "vibration","elder_guardian","falling_spore_blossom","noxious_gas_cloud"].forEach(n=>{if(P[n])P[n].noSpeed=1});
+// vanilla base-ctor pop: speed sets direction only, magnitude is a small fixed kick
+["block","poof","cloud","splash","fishing","egg_crack","sneeze"].forEach(n=>{P[n].pop=1;P[n].vel=0;});
+["item","item_cobweb","item_slime","item_snowball"].forEach(n=>{P[n].pop=0;P[n].vel=0;P[n].drag=.98;P[n].grav=.06;});
+["heart","angry_villager"].forEach(n=>{P[n].noSpeed=1;P[n].pop=0;P[n].drag=.86;P[n].grav=.002;P[n].life=[10,24];P[n].rise=0;P[n].vel=.008;P[n].up=[.04,.09];});
+P.happy_villager.velMul=.02;P.happy_villager.rise=0;
+[P.dust,P.dust_color_transition].forEach(d=>{d.pop=1;d.popMul=.1;d.vel=0;});
+P.ash.tint=1;P.white_ash.tint=1;P.white_ash.colors=["#e0e0e6"];
+P.dust_plume.tint=1;
+P.crit.velMul=.4;P.crit.vel=.012;P.enchanted_hit.velMul=.4;P.enchanted_hit.vel=.012;
+P.block_crumble.life=[6,16];P.block_crumble.hangT=[0,3];
+// fade is opt-in, vanilla particles vanish instantly
+["campfire_cosy_smoke","campfire_signal_smoke","soul","sculk_soul","dragon_breath",
+ "end_rod","glow","firefly","spore_blossom_air","noxious_gas_cloud","witch"].forEach(n=>P[n].fade=1);
+["ash","white_ash","mycelium","spore_blossom_air","crimson_spore","warped_spore",
+ "cherry_leaves","pale_oak_leaves","tinted_leaves","firefly","underwater","note"].forEach(n=>P[n].ignoreVel=1);
+const BLOCK_FAMILY=["block","falling_dust","block_marker","dust_pillar","block_crumble"];
+function blockTexName(bn){
+  const woods=["oak","spruce","birch","jungle","acacia","dark_oak","mangrove","cherry","bamboo","crimson","warped","pale_oak"];
+  for(const sf of["_fence_gate","_fence","_stairs","_slab","_wall","_pressure_plate","_button","_trapdoor","_hanging_sign","_sign"]){
+    if(bn.endsWith(sf)){const base=bn.slice(0,-sf.length);return woods.includes(base)?base+"_planks":base;}
+  }
+  return bn;
+}
+const BLOCK_COLORS={stone:"#7d7d7d",dirt:"#8a5a3c",grass_block:"#6ea644",sand:"#dbcf9c",oak_planks:"#a8874f",
+ cobblestone:"#7a7a7a",netherrack:"#6e3533",obsidian:"#150f26",diamond_block:"#62e8dc",gold_block:"#f8d33e",
+ redstone_block:"#ab1b09",emerald_block:"#2fbf60",snow_block:"#f4fdfd",ice:"#7dadff",tnt:"#c8442e",
+ deepslate:"#4c4c50",soul_sand:"#513e33",glowstone:"#c8a049",bedrock:"#565656",water:"#3d63ff",lava:"#cf5b0b"};
+
+// command parsing
+function tokenize(s){
+  const out=[];let cur="",depth=0;
+  for(const ch of s){
+    if(ch==="{"||ch==="[")depth++;
+    if(ch==="}"||ch==="]")depth--;
+    if(/\s/.test(ch)&&depth===0){if(cur){out.push(cur);cur="";}}
+    else cur+=ch;
+  }
+  if(cur)out.push(cur);
+  return out;
+}
+function parseSNBT(s){ // lenient SNBT -> JSON
+  try{
+    let j=s.replace(/([{[,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:/g,'$1"$2":')
+           .replace(/'/g,'"')
+           .replace(/(-?\d*\.?\d+)[bslfdBSLFD](?=[,}\]\s])/g,'$1')
+           .replace(/:\s*([A-Za-z_][A-Za-z0-9_.:\/-]*)(?=\s*[,}\]])/g,
+             (m,v)=>(v==="true"||v==="false"||v==="null")?":"+v:':"'+v+'"');
+    return JSON.parse(j);
+  }catch(e){return null;}
+}
+function colorFrom(v){ 
+  if(Array.isArray(v)){
+    let a=v.length===4?v.slice(1):v; // handle both [r,g,b] and 4-component color arrays
+    if(v.length===4&&v.every(x=>x<=1)) a=v.slice(0,3);
+    if(a.every(x=>x<=1)) return a.map(x=>Math.round(x*255));
+    return a.map(x=>Math.round(x));
+  }
+  if(typeof v==="number"){return[(v>>16)&255,(v>>8)&255,v&255];}
+  return null;
+}
+function parseCoord(tok,base,name){
+  if(tok.startsWith("~")||tok.startsWith("^")){
+    const n=tok.length>1?parseFloat(tok.slice(1)):0;
+    if(isNaN(n))throw`bad coordinate "${tok}"`;
+    return {rel:true,v:n};
+  }
+  const n=parseFloat(tok);
+  if(isNaN(n))throw`bad ${name} "${tok}"`;
+  return {rel:false,v:n};
+}
+function parseCommands(text){
+  const emitters=[],msgs=[];
+  text.split("\n").forEach((line,i)=>{
+    line=line.trim();
+    if(!line||line.startsWith("#"))return;
+    if(line.startsWith("/"))line=line.slice(1);
+    const t=tokenize(line);
+    if(t[0]!=="particle"){msgs.push({t:"e",m:`line ${i+1}: not a particle command`});return;}
+    if(t.length<2){msgs.push({t:"e",m:`line ${i+1}: missing particle type`});return;}
+    try{
+      let typeTok=t[1],opts=null;
+      const br=typeTok.indexOf("{");
+      if(br>-1){opts=parseSNBT(typeTok.slice(br));typeTok=typeTok.slice(0,br);
+        if(!opts)msgs.push({t:"w",m:`line ${i+1}: bad component data, ignored`});}
+      const name=typeTok.replace(/^minecraft:/,"");
+      let def=P[name];
+      if(!def){def={colors:["#ff44ff","#111111"],size:.1,life:[14,24],vel:.004,missing:1};
+        msgs.push({t:"w",m:`line ${i+1}: unknown particle "${name}", using generic physics`});}
+      def=Object.assign({},def);
+      def.name=name;
+      if(!BLOCK_FAMILY.includes(name))ensureSprites(name);
+      if(def.emits)ensureSprites(def.emits);
+      if(name==="item_cobweb")def.blockImg=loadImage(ASSETS+"textures/block/cobweb.png");
+      if(opts){
+        if(name==="dust"){
+          const c=colorFrom(opts.color);if(c)def.colors=[c];
+          if(opts.scale)def.size=.1*Math.min(4,Math.max(.01,opts.scale));
+        }else if(name==="dust_color_transition"){
+          const a=colorFrom(opts.from_color),b=colorFrom(opts.to_color);
+          def.lerpFrom=a||[255,0,0];def.lerpTo=b||[0,0,255];
+          if(opts.scale)def.size=.1*Math.min(4,Math.max(.01,opts.scale));
+        }else if(name==="entity_effect"){
+          const c=colorFrom(opts.color);if(c)def.colors=[c];
+        }else if(name==="block"||name==="falling_dust"||name==="block_marker"||name==="block_crumble"||name==="dust_pillar"){
+          let bs=opts.block_state;if(typeof bs==="object")bs=bs.Name||bs.name;
+          if(typeof bs==="string"){const bn=bs.replace(/^minecraft:/,"").replace(/\[.*$/,"");
+            if(BLOCK_COLORS[bn])def.colors=[BLOCK_COLORS[bn]];
+            const tex=blockTexName(bn);
+            def.blockImg=loadImage(ASSETS+"textures/block/"+tex+".png");
+            def.blockImgTop=loadImage(ASSETS+"textures/block/"+tex+"_top.png");
+            def.blockImgSide=loadImage(ASSETS+"textures/block/"+tex+"_side.png");}
+        }else if(name==="trail"){
+          const c=colorFrom(opts.color);if(c)def.colors=[c];
+          if(Array.isArray(opts.target))def.trailTarget=opts.target.map(Number);
+          if(opts.duration)def.trailDur=+opts.duration;
+        }else if(name==="vibration"){
+          const dp=opts.destination&&(opts.destination.pos||opts.destination.block_pos);
+          if(Array.isArray(dp))def.trailTarget=dp.map(Number);
+          if(opts.arrival_in_ticks)def.trailDur=+opts.arrival_in_ticks;
+        }else if(name==="item"){
+          let it=opts.item;if(it&&typeof it==="object")it=it.id;
+          if(typeof it==="string"){const iid=it.replace(/^minecraft:/,"");
+            def.blockImg=loadImage(ASSETS+"textures/item/"+iid+".png");
+            def.blockImgTop=loadImage(ASSETS+"textures/block/"+iid+".png");
+            def.blockImgSide=loadImage(ASSETS+"textures/block/"+iid+"_top.png");}
+        }else if(name==="shriek"){
+          if(opts.delay)def.delayTicks=+opts.delay;
+        }
+      }
+      if(BLOCK_FAMILY.includes(name)&&!def.blockImg)
+        throw`${name} requires block_state, e.g. ${name}{block_state:"minecraft:sand"}`;
+      const pos=[{rel:true,v:0},{rel:true,v:0},{rel:true,v:0}];
+      for(let k=0;k<3;k++)if(t[2+k]!==undefined)pos[k]=parseCoord(t[2+k],0,"xyz"[k]);
+      const delta=[0,0,0];
+      for(let k=0;k<3;k++)if(t[5+k]!==undefined){delta[k]=parseFloat(t[5+k]);if(isNaN(delta[k]))throw`bad delta "${t[5+k]}"`;}
+      let speed=t[8]!==undefined?parseFloat(t[8]):0;
+      let count=t[9]!==undefined?parseInt(t[9]):0;
+      if(isNaN(speed))throw`bad speed "${t[8]}"`;
+      if(isNaN(count))throw`bad count "${t[9]}"`;
+      if(count>1000){msgs.push({t:"w",m:`line ${i+1}: count capped at 1000`});count=1000;}
+      if(name==="note"&&count===0)def.hueFixed=((delta[0]%1)+1)%1;
+      emitters.push({def,pos,delta,speed,count,line:i+1});
+    }catch(err){msgs.push({t:"e",m:`line ${i+1}: ${err}`});}
+  });
+  return {emitters,msgs};
+}
+
+// simulation
+let particles=[],emitters=[],tick=0;
+const MAX_PARTICLES=6000;
+const origin={x:0,y:1,z:0};
+
+function spawnFromEmitter(em){
+  const px=em.pos[0].rel?origin.x+em.pos[0].v:em.pos[0].v;
+  const py=em.pos[1].rel?origin.y+em.pos[1].v:em.pos[1].v;
+  const pz=em.pos[2].rel?origin.z+em.pos[2].v:em.pos[2].v;
+  const n=em.count===0?1:em.count;
+  for(let i=0;i<n;i++){
+    if(particles.length>=MAX_PARTICLES)return;
+    let x=px,y=py,z=pz,vx=0,vy=0,vz=0;
+    if(em.count===0){
+      if(!em.def.noSpeed){vx=em.delta[0]*em.speed;vy=em.delta[1]*em.speed;vz=em.delta[2]*em.speed;}
+    }else{
+      x+=gauss()*em.delta[0];y+=gauss()*em.delta[1];z+=gauss()*em.delta[2];
+      if(em.speed>0&&!em.def.noSpeed){vx=gauss()*em.speed;vy=gauss()*em.speed;vz=gauss()*em.speed;}
+    }
+    if(em.def.emits){
+      const cd=Object.assign({},P[em.def.emits]||{},{name:em.def.emits});
+      for(let k=0;k<em.def.n;k++)
+        makeParticle(cd,x+gauss()*em.def.spread,y+Math.abs(gauss())*em.def.spread*.5,z+gauss()*em.def.spread,0,0,0,px,py,pz);
+      continue;
+    }
+    makeParticle(em.def,x,y,z,vx,vy,vz,px,py,pz);
+  }
+}
+function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
+  let noteHue=null;
+  if(def.name==="note")noteHue=vx!==0?(((vx%1)+1)%1):Math.random();
+  if(def.ignoreVel){vx=0;vy=0;vz=0;}
+  const iv=def.vel||0;
+  vx+=gauss()*iv;vy+=gauss()*iv;vz+=gauss()*iv;
+  if(def.velMul){vx*=def.velMul;vy*=def.velMul;vz*=def.velMul;}
+  if(def.pop){const v=popVel(vx,vy,vz);vx=v[0];vy=v[1];vz=v[2];
+    if(def.popMul){vx*=def.popMul;vy*=def.popMul;vz*=def.popMul;}}
+  const lf=def.life8?(8/(Math.random()*0.8+0.2))|0:rand(def.life[0],def.life[1])|0;
+  const p={x,y,z,vx,vy,vz,age:0,life:lf,def,
+    ox:ox2,oy:oy2,oz:oz2,seed:Math.random()*Math.PI*2};
+  if(def.behavior==="portal"){
+    p.tx=x;p.ty=y;p.tz=z;
+    let dx=p.vx,dy=p.vy,dz=p.vz;
+    if(!dx&&!dy&&!dz){dx=gauss()*.6;dy=(Math.random()-.5)*1.2;dz=gauss()*.6;}
+    p.dx=dx;p.dy=dy;p.dz=dz;
+  }
+  if(def.behavior==="note")p.vy=.2;
+  if(def.up)p.vy+=rand(def.up[0],def.up[1]);
+  p.hidden=def.delayTicks||0;
+  if(def.behavior==="trail"){
+    p.sx=x;p.sy=y;p.sz=z;
+    if(def.trailTarget){p.tx=def.trailTarget[0];p.ty=def.trailTarget[1];p.tz=def.trailTarget[2];
+      if(def.trailDur)p.life=def.trailDur|0;}
+    else{p.tx=x+gauss();p.ty=y+gauss()*.5;p.tz=z+gauss();}
+  }
+  if(def.behavior==="burst"){
+    const a=Math.random()*Math.PI*2,b=Math.random()*Math.PI-Math.PI/2,s=rand(.05,.25);
+    p.vx+=Math.cos(a)*Math.cos(b)*s;p.vy+=Math.sin(b)*s;p.vz+=Math.sin(a)*Math.cos(b)*s;
+  }
+  if(def.behavior==="drip"){const h=def.hangT||[20,40];p.hang=rand(h[0],h[1])|0;}
+  let col;
+  if(def.lerpFrom)col=def.lerpFrom.slice();
+  else if(noteHue!==null)col=hsv(noteHue*360,.85,1);
+  else{const c=pick(def.colors);col=c==="#hue"?hsv((def.hueFixed!==undefined?def.hueFixed:Math.random())*360,.8,1):(typeof c==="string"?hexToRgb(c):c);}
+  if(def.missing&&Math.random()<.5)col=[17,17,17];
+  p.col=col;
+  particles.push(p);
+}
+function stepSim(){
+  tick++;
+  const chk=$("loopChk").checked,iv=Math.max(1,parseInt($("loopTicks").value)||1);
+  if(chk&&tick%iv===0)emitters.forEach(spawnFromEmitter);
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i],d=p.def;
+    if(p.hidden>0){p.hidden--;continue;}
+    p.age++;
+    if(p.age>=p.life){particles.splice(i,1);continue;}
+    if(d.behavior==="portal"){
+      let f=p.age/p.life;f=-f+f*f*2;f=1-f;
+      p.x=p.tx+p.dx*f;p.y=p.ty+p.dy*f-(d.sink?(p.age/p.life)*.55:0);p.z=p.tz+p.dz*f;
+      continue;
+    }
+    if(d.behavior==="trail"){
+      let t=p.age/p.life;t=t*t*(3-2*t);
+      p.x=p.sx+(p.tx-p.sx)*t;p.y=p.sy+(p.ty-p.sy)*t;p.z=p.sz+(p.tz-p.sz)*t;
+      continue;
+    }
+    if(d.behavior==="drip"&&p.hang>0){p.hang--;continue;}
+    if(d.behavior==="drip"){p.vy-=.05;}
+    if(d.waft){p.vx+=(Math.random()-.5)*.0005;p.vz+=(Math.random()-.5)*.0005;}
+    if(d.behavior==="leaf"){
+      p.vy=-.012;
+      p.vx+=Math.cos(p.age*.08+p.seed)*.0015;
+      p.vz+=Math.sin(p.age*.07+p.seed)*.0015;
+    }
+    if(d.grav)p.vy-=d.grav;
+    if(d.rise)p.vy+=d.rise*(1-Math.min(1,p.age/p.life*.5));
+    p.x+=p.vx;p.y+=p.vy;p.z+=p.vz;
+    if(d.drag){p.vx*=d.drag;p.vy*=d.drag;p.vz*=d.drag;}
+    if(d.lerpFrom)p.col=lerpC(d.lerpFrom,d.lerpTo,p.age/p.life);
+  }
+}
+
+// renderer
+const cv=$("cv"),ctx=cv.getContext("2d");
+const cam={yaw:.7,pitch:.45,dist:18};
+function resize(){const r=cv.getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;}
+window.addEventListener("resize",resize);
+function project(x,y,z){
+  const dx=x-origin.x,dy=y-origin.y,dz=z-origin.z;
+  const cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw),cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  let rx=dx*cy-dz*sy, rz=dx*sy+dz*cy;
+  let ry=dy*cp-rz*sp; rz=dy*sp+rz*cp;
+  const depth=rz+cam.dist;
+  if(depth<=.3)return null;
+  const f=(cv.height*1.15)/depth;
+  return {x:cv.width/2+rx*f, y:cv.height/2-ry*f, s:f, d:depth};
+}
+function line3(x1,y1,z1,x2,y2,z2,style,w){
+  const a=project(x1,y1,z1),b=project(x2,y2,z2);
+  if(!a||!b)return;
+  ctx.strokeStyle=style;ctx.lineWidth=w||1;
+  ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+}
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const g=Math.floor;
+  const gx=g(origin.x),gz=g(origin.z),R=8;
+  if($("groundChk").checked){
+    for(let ix=-R;ix<R;ix++)for(let iz=-R;iz<R;iz++){
+      const a=project(gx+ix,0,gz+iz),b=project(gx+ix+1,0,gz+iz),
+            c=project(gx+ix+1,0,gz+iz+1),e=project(gx+ix,0,gz+iz+1);
+      if(!a||!b||!c||!e)continue;
+      ctx.fillStyle=((ix+iz)&1)?"#252b26":"#1d221e";
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+      ctx.lineTo(c.x,c.y);ctx.lineTo(e.x,e.y);ctx.closePath();ctx.fill();
+    }
+  }
+  for(let i=-R;i<=R;i++){
+    line3(gx-R,0,gz+i,gx+R,0,gz+i,i===0&&gz+i===0?"#3a4a6a":"#20263a",1);
+    line3(gx+i,0,gz-R,gx+i,0,gz+R,i===0&&gx+i===0?"#3a4a6a":"#20263a",1);
+  }
+  // origin marker
+  line3(origin.x-.4,origin.y,origin.z,origin.x+.4,origin.y,origin.z,"#ff5555",2);
+  line3(origin.x,origin.y-.4,origin.z,origin.x,origin.y+.4,origin.z,"#55ff7f",2);
+  line3(origin.x,origin.y,origin.z-.4,origin.x,origin.y,origin.z+.4,"#5588ff",2);
+  // particles depth-sorted
+  const drawable=[];
+  for(const p of particles){
+    if(p.hidden>0)continue;
+    const pr=project(p.x,p.y,p.z);
+    if(pr)drawable.push([pr,p]);
+  }
+  drawable.sort((a,b)=>b[0].d-a[0].d);
+  for(const [pr,p] of drawable){
+    const d=p.def,t=p.age/p.life;
+    let sz=d.size*pr.s;
+    if(d.curve==="flame")sz*=1-t*t*.5;
+    else if(d.curve==="pop")sz*=Math.min(1,p.age*32/p.life);
+    else if(d.shrink)sz*=1-t*.8;
+    if(sz<1*devicePixelRatio)sz=1*devicePixelRatio;
+    let alpha=1;
+    if(d.fade&&t>.7)alpha=1-(t-.7)/.3;
+    if(d.flicker)alpha*=rand(.4,1);
+    const[r,gc,b]=p.col;
+    ctx.globalAlpha=Math.max(0,alpha);
+    const ok=im=>im&&im.complete&&im.naturalWidth;
+    let img=null,crop=null;
+    if(d.blockImg||d.blockImgTop){
+      const bi=ok(d.blockImg)?d.blockImg:(ok(d.blockImgTop)?d.blockImgTop:(ok(d.blockImgSide)?d.blockImgSide:null));
+      if(bi){img=bi;
+        if(d.name!=="block_marker"){ // random quarter of the block texture
+          const w=bi.naturalWidth,h=bi.naturalHeight,f1=p.seed/(Math.PI*2),f2=(p.seed*7)%1;
+          crop=[(f1*(w*.75))|0,(f2*(h*.75))|0,w>>2,h>>2];}}
+    }else{
+      const sp=spriteSets[d.name];
+      if(sp&&sp.ready&&sp.frames.length){
+        const idx=d.randFrame?Math.min(sp.frames.length-1,(p.seed/(Math.PI*2)*sp.frames.length)|0)
+          :Math.min(sp.frames.length-1,(p.age*sp.frames.length/(p.life+1))|0);
+        if(ok(sp.frames[idx]))img=sp.frames[idx];
+      }
+    }
+    if(img){
+      if(d.tint)img=tinted(img,p.col);
+      ctx.imageSmoothingEnabled=false;
+      if(crop)ctx.drawImage(img,crop[0],crop[1],crop[2],crop[3],pr.x-sz,pr.y-sz,sz*2,sz*2);
+      else ctx.drawImage(img,pr.x-sz,pr.y-sz,sz*2,sz*2);
+    }else{
+      ctx.fillStyle=`rgb(${r},${gc},${b})`;
+      ctx.fillRect(pr.x-sz,pr.y-sz,sz*2,sz*2);
+    }
+  }
+  ctx.globalAlpha=1;
+}
+
+// loop
+let playing=true,acc=0,last=performance.now();
+const TICK_MS=50;
+function frame(now){
+  const dt=Math.min(200,now-last);last=now;
+  if(playing){acc+=dt;while(acc>=TICK_MS){stepSim();acc-=TICK_MS;}}
+  draw();
+  $("hud").innerHTML=
+    `<b>${particles.length}</b> particles${particles.length>=MAX_PARTICLES?' <span style="color:#fcfc54">(cap)</span>':''}<br>`+
+    `tick <b>${tick}</b>  ${playing?'<span class="live">running 20 tps</span>':'paused'}<br>`+
+    `origin <b>${origin.x} ${origin.y} ${origin.z}</b><br>`+
+    `textures: ${Object.values(spriteSets).some(s=>s.ready)?'<span class="live">vanilla assets</span>':'loading'}`;
+  requestAnimationFrame(frame);
+}
+
+// input: orbit / zoom / origin
+let drag=null,pinch=null;
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);
+  if(pinchPts.size===1){const o=[...pinchPts.values()][0];pinch={d:Math.hypot(e.clientX-o.x,e.clientY-o.y)};}
+  pinchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  drag={x:e.clientX,y:e.clientY};cv.classList.add("dragging");});
+const pinchPts=new Map();
+cv.addEventListener("pointermove",e=>{
+  if(pinchPts.has(e.pointerId))pinchPts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinchPts.size===2){
+    const[a,b]=[...pinchPts.values()];
+    const nd=Math.hypot(a.x-b.x,a.y-b.y);
+    if(pinch&&pinch.d>0){cam.dist=Math.min(60,Math.max(2,cam.dist*pinch.d/nd));$("zoom").value=cam.dist;}
+    pinch={d:nd};return;
+  }
+  if(!drag)return;
+  cam.yaw-=(e.clientX-drag.x)*.008;
+  cam.pitch=Math.min(1.55,Math.max(-1.55,cam.pitch-(e.clientY-drag.y)*.008));
+  drag={x:e.clientX,y:e.clientY};
+});
+function endPtr(e){pinchPts.delete(e.pointerId);if(pinchPts.size<2)pinch=null;if(pinchPts.size===0){drag=null;cv.classList.remove("dragging");}}
+cv.addEventListener("pointerup",endPtr);cv.addEventListener("pointercancel",endPtr);
+cv.addEventListener("wheel",e=>{e.preventDefault();
+  cam.dist=Math.min(60,Math.max(2,cam.dist*(e.deltaY>0?1.1:0.9)));$("zoom").value=cam.dist;},{passive:false});
+$("zoom").addEventListener("input",e=>cam.dist=parseFloat(e.target.value));
+cv.addEventListener("dblclick",e=>{ // pick ground point under cursor
+  const rect=cv.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*devicePixelRatio,my=(e.clientY-rect.top)*devicePixelRatio;
+  let best=null;
+  for(let x=origin.x-10;x<=origin.x+10;x+=.25)for(let z=origin.z-10;z<=origin.z+10;z+=.25){
+    const pr=project(x,0,z);if(!pr)continue;
+    const dd=(pr.x-mx)**2+(pr.y-my)**2;
+    if(!best||dd<best.dd)best={x,z,dd};
+  }
+  if(best&&best.dd<(30*devicePixelRatio)**2){
+    origin.x=Math.round(best.x*2)/2;origin.z=Math.round(best.z*2)/2;
+    $("ox").value=origin.x;$("oz").value=origin.z;
+  }
+});
+["ox","oy","oz"].forEach((id,i)=>$(id).addEventListener("input",e=>{
+  const v=parseFloat(e.target.value);if(!isNaN(v))origin["xyz"[i]]=v;}));
+$("resetOrigin").onclick=()=>{origin.x=0;origin.y=1;origin.z=0;$("ox").value=0;$("oy").value=1;$("oz").value=0;};
+
+// controls
+$("playBtn").onclick=()=>{playing=!playing;$("playBtn").textContent=playing?"Pause":"Play";};
+$("burstBtn").onclick=()=>emitters.forEach(spawnFromEmitter);
+$("clearBtn").onclick=()=>{particles=[];};
+function apply(){
+  const {emitters:em,msgs}=parseCommands($("cmds").value);
+  emitters=em;
+  $("errors").innerHTML=msgs.map(m=>`<div class="${m.t}">${m.t==="e"?"[error]":"[warn]"} ${m.m}</div>`).join("")+
+    (em.length?`<div class="ok">${em.length} command${em.length>1?"s":""} loaded</div>`:"");
+}
+$("applyBtn").onclick=()=>{particles=[];apply();};
+$("cmds").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){particles=[];apply();}});
+
+resize();apply();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
