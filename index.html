@@ -6,7 +6,7 @@
 <title>Particle Visualizer 1.21.11</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-  @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
+  @font-face{font-family:'MinecraftTTF';src:url('Minecraft.ttf');font-display:swap}
   *{box-sizing:border-box;image-rendering:pixelated}
   body{margin:0;font-family:'MinecraftTTF','VT323',monospace;font-size:19px;color:#3f3f3f;
     background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
@@ -46,7 +46,9 @@
   #errors .e{color:#fc5454} #errors .w{color:#fcfc54} #errors .ok{color:#54fc54}
   .origin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   kbd{background:#000;color:#e0e0e0;padding:0 6px;border:1px solid #a0a0a0}
-  .tabs{display:flex;gap:4px;margin:10px 0 0}
+  .help{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
+    border-radius:50%;background:#4a4a4a;color:#fff;font-size:14px;cursor:help;border:2px solid #a0a0a0}
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 0}
   .tab{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#6b6b6b;color:#d0d0d0;
     text-shadow:2px 2px #3f3f3f;border:2px solid;border-color:#a0a0a0 #2f2f2f #2f2f2f #a0a0a0;
     border-bottom:none;padding:5px 18px 3px;cursor:pointer}
@@ -61,6 +63,10 @@
   /* let inputs shrink on narrow screens so output stays on-screen */
   @media(max-width:700px){
     .genrow input{max-width:100%;flex:1 1 70px}
+    .genrow button,.tabbody button{flex:1 1 auto;min-width:0}
+    #tab-share .genrow,#tab-shapes .genrow{width:100%}
+    #tab-share,#tab-shapes{flex-wrap:wrap}
+    .tab{flex:1 1 auto;text-align:center;padding:5px 8px 3px}
     .genout{font-size:16px}
     .wrap{padding:8px}
   }
@@ -90,6 +96,8 @@
     <button class="tab active" data-tab="play">Playback</button>
     <button class="tab" data-tab="scene">Scene</button>
     <button class="tab" data-tab="gen">Generator</button>
+    <button class="tab" data-tab="shapes">Shapes</button>
+    <button class="tab" data-tab="share">Share</button>
   </div>
 
   <div class="controls tabbody" id="tab-play">
@@ -149,6 +157,65 @@
       <button id="gSend" class="primary">Send To Renderer</button>
       <span class="hint" id="gNote"></span>
     </div>
+  </div>
+
+  <div class="controls tabbody" id="tab-shapes" style="display:none">
+    <div class="genrow">
+      <label>shape</label>
+      <select id="shKind">
+        <option value="circle">circle</option>
+        <option value="sphere">sphere</option>
+        <option value="line">line</option>
+        <option value="spiral">spiral</option>
+        <option value="image">image (trace a picture)</option>
+      </select>
+      <label>particle</label>
+      <input list="ptypes" id="shType" value="flame" style="width:180px">
+    </div>
+    <div class="genrow" id="shParams"></div>
+    <div class="tabbody" id="shImageRow" style="display:none;flex-direction:column;gap:8px;width:100%">
+      <div class="genrow">
+        <input type="file" id="shImgFile" accept="image/*">
+        <label><input type="checkbox" id="shImgColor" checked> use pixel colors (dust only)</label>
+        <label><input type="checkbox" id="shImgUpright" checked> stand upright</label>
+      </div>
+      <div class="genrow">
+        <label>detail</label><input type="range" id="shImgRes" min="8" max="90" value="40" style="flex:1 1 120px">
+        <label>size</label><input id="shImgSize" value="4" style="width:56px">
+        <label>threshold</label><input type="range" id="shImgThresh" min="0" max="250" value="200" style="flex:1 1 100px">
+      </div>
+      <div class="genrow">
+        <canvas id="shImgPrev" width="120" height="120" style="border:2px solid #a0a0a0;background:#000;image-rendering:pixelated;width:120px;height:120px"></canvas>
+        <span class="hint" id="shImgInfo">pick an image</span>
+        <span class="help" title="import a picture to turn its black / dark pixels into particles. transparent and white pixels are skipped.">?</span>
+      </div>
+    </div>
+    <div class="genrow">
+      <label>speed</label><input id="shSpeed" value="0" style="width:60px">
+      <label>count</label><input id="shCount" value="1" style="width:60px">
+      <label><input type="checkbox" id="shForce"> force</label>
+      <span class="hint" id="shNote"></span>
+    </div>
+    <div class="genrow">
+      <button id="shSend" class="primary">Send To Renderer</button>
+      <button id="shCopy">Copy</button>
+      <span class="hint">generates one command per point</span>
+    </div>
+  </div>
+
+  <div class="controls tabbody" id="tab-share" style="display:none">
+    <div class="genrow">
+      <button id="shrLink" class="primary">Copy Share Link</button>
+      <button id="shrRaw">Copy Commands</button>
+      <button id="shrFunc">Export .mcfunction</button>
+      <span class="hint" id="shrNote"></span>
+    </div>
+    <div class="genrow">
+      <label>function name</label>
+      <input id="shrName" value="particles" style="width:180px">
+      <span class="hint">used for the downloaded file</span>
+    </div>
+    <div class="genrow"><span class="hint">Share link packs your commands, origin and camera into the URL. Open it to load the exact same scene.</span></div>
   </div>
 
   <div>
@@ -1014,7 +1081,164 @@ $("cmds").addEventListener("input",autoGrow);
 autoGrow();
 $("cmds").addEventListener("keydown",e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){particles=[];apply();}});
 
-resize();apply();requestAnimationFrame(frame);
+// ---- shapes ----
+// each shape lists its own param fields, then a fn that returns [x,y,z] offset points
+let imgPoints=null; // [[x,y,z,"r g b"],...] built from the loaded picture
+const SHAPES={
+  circle:{f:[["radius",3],["points",24],["axis","xz"]],
+    pts:v=>{const r=+v.radius||1,n=Math.max(1,v.points|0),ax=v.axis||"xz",o=[];
+      for(let i=0;i<n;i++){const a=i/n*Math.PI*2,c=Math.cos(a)*r,s2=Math.sin(a)*r;
+        o.push(ax==="xz"?[c,0,s2]:ax==="xy"?[c,s2,0]:[0,c,s2]);}return o;}},
+  sphere:{f:[["radius",3],["points",120]],
+    pts:v=>{const r=+v.radius||1,n=Math.max(1,v.points|0),o=[],gr=Math.PI*(3-Math.sqrt(5));
+      for(let i=0;i<n;i++){const y=1-i/(n-1)*2,rr=Math.sqrt(1-y*y),th=gr*i;
+        o.push([Math.cos(th)*rr*r,y*r,Math.sin(th)*rr*r]);}return o;}},
+  line:{f:[["length",5],["points",16],["axis","x"]],
+    pts:v=>{const L=+v.length||1,n=Math.max(1,v.points|0),ax=v.axis||"x",o=[];
+      for(let i=0;i<n;i++){const t=(i/(n-1||1)-.5)*L;
+        o.push(ax==="x"?[t,0,0]:ax==="y"?[0,t,0]:[0,0,t]);}return o;}},
+  spiral:{f:[["radius",3],["height",4],["turns",3],["points",60]],
+    pts:v=>{const r=+v.radius||1,h=+v.height||1,t=+v.turns||1,n=Math.max(1,v.points|0),o=[];
+      for(let i=0;i<n;i++){const f=i/(n-1||1),a=f*t*Math.PI*2;
+        o.push([Math.cos(a)*r,f*h,Math.sin(a)*r]);}return o;}}
+};
+(()=>{
+  const g=id=>($(id)?$(id).value.trim():"");
+  const shType=()=>g("shType").replace(/^minecraft:/,"")||"flame";
+  const fmt=n=>{const r=Math.round(n*1000)/1000;return(r>=0?"~":"~")+r;}; // relative offset
+
+  // rebuild param inputs for the chosen shape
+  function shFields(){
+    const k=g("shKind"),wrap=$("shParams"),img=k==="image";
+    $("shImageRow").style.display=img?"flex":"none";
+    wrap.style.display=img?"none":"flex";
+    if(img)return;
+    wrap.innerHTML="";
+    if(!SHAPES[k])return;
+    SHAPES[k].f.forEach(([key,def])=>{
+      const l=document.createElement("label");l.textContent=key;
+      if(key==="axis"){
+        const sel=document.createElement("select");sel.id="shp_"+key;
+        (g("shKind")==="line"?["x","y","z"]:["xz","xy","yz"]).forEach(a=>{
+          const o=document.createElement("option");o.value=o.textContent=a;sel.appendChild(o);});
+        wrap.appendChild(l);wrap.appendChild(sel);
+      }else{
+        const i=document.createElement("input");i.id="shp_"+key;i.value=def;i.style.width="66px";
+        wrap.appendChild(l);wrap.appendChild(i);
+      }
+    });
+  }
+  // resample the loaded <img> at the chosen detail and rebuild imgPoints
+  let loadedImg=null;
+  function sampleImage(){
+    if(!loadedImg)return;
+    const res=+$("shImgRes").value|0,size=+$("shImgSize").value||4,
+      th=+$("shImgThresh").value,useCol=$("shImgColor").checked,up=$("shImgUpright").checked;
+    const c=document.createElement("canvas"),ratio=loadedImg.height/loadedImg.width;
+    const w=res,h=Math.max(1,Math.round(res*ratio));
+    c.width=w;c.height=h;const cx=c.getContext("2d");
+    cx.imageSmoothingEnabled=false;cx.drawImage(loadedImg,0,0,w,h);
+    const d=cx.getImageData(0,0,w,h).data,pts=[];
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const i=(y*w+x)*4,a=d[i+3];if(a<40)continue; // transparent
+      const r=d[i],gg=d[i+1],b=d[i+2];
+      if(r>th&&gg>th&&b>th)continue; // near-white, skip
+      // center the shape, flip Y (image top = world top), scale to size
+      const px=(.5-x/w)*size, py=(.5-y/h)*size*ratio;
+      const col=useCol?`${(r/255).toFixed(3)} ${(gg/255).toFixed(3)} ${(b/255).toFixed(3)}`:"1 1 1";
+      pts.push(up?[px,py+size*ratio*.5,0,col]:[px,0,-py,col]);
+    }
+    imgPoints=pts;
+    // preview: draw the downsampled grid straight into the little canvas
+    const pv=$("shImgPrev"),pc=pv.getContext("2d");
+    pc.clearRect(0,0,120,120);pc.imageSmoothingEnabled=false;
+    const sc=Math.min(120/w,120/h),ox=(120-w*sc)/2,oy=(120-h*sc)/2;
+    pc.drawImage(c,ox,oy,w*sc,h*sc);
+    $("shImgInfo").textContent=pts.length+" particles";
+  }
+
+  function points(){
+    const k=g("shKind");
+    if(k==="image")return imgPoints?imgPoints.map(p=>[p[0],p[1],p[2]]):[];
+    const v={};SHAPES[k].f.forEach(([key])=>v[key]=g("shp_"+key));
+    return SHAPES[k].pts(v);
+  }
+  function commands(){
+    if(g("shKind")==="image"){
+      if(!imgPoints||!imgPoints.length)return "";
+      const t=shType(),sp=g("shSpeed")||"0",ct=g("shCount")||"1",force=$("shForce").checked?" force":"";
+      const dusty=t==="dust"||t==="dust_color_transition";
+      const wantCol=$("shImgColor").checked&&dusty;
+      return imgPoints.map(([x,y,z,col])=>{
+        let comp="";
+        if(wantCol){
+          const c=col.split(" ").join(",");
+          comp=t==="dust"?`{color:[${c}],scale:1}`
+            :`{from_color:[${c}],to_color:[${c}],scale:1}`;
+        }
+        return `particle minecraft:${t}${comp} ${fmt(x)} ${fmt(y)} ${fmt(z)} 0 0 0 ${sp} ${ct}${force}`;
+      }).join("\n");
+    }
+    const t=shType(),sp=g("shSpeed")||"0",ct=g("shCount")||"0",force=$("shForce").checked?" force":"";
+    return points().map(([x,y,z])=>
+      `particle minecraft:${t} ${fmt(x)} ${fmt(y)} ${fmt(z)} 0 0 0 ${sp} ${ct}${force}`).join("\n");
+  }
+  $("shKind").addEventListener("change",()=>{shFields();$("shNote").textContent="";});
+  $("shImgFile").addEventListener("change",e=>{
+    const f=e.target.files[0];if(!f)return;
+    const im=new Image();im.onload=()=>{loadedImg=im;sampleImage();};
+    im.src=URL.createObjectURL(f);
+  });
+  ["shImgRes","shImgSize","shImgThresh","shImgColor","shImgUpright"].forEach(id=>{
+    const e=$(id);e&&e.addEventListener("input",sampleImage);
+  });
+  $("shSend").onclick=()=>{
+    const cmds=commands();if(!cmds){$("shNote").textContent="no valid points";return;}
+    const box=$("cmds");box.value=box.value.trim()?box.value.replace(/\s+$/,"")+"\n"+cmds:cmds;
+    if(window.autoGrow)window.autoGrow();particles=[];apply();
+    $("shNote").textContent=cmds.split("\n").length+" commands added";
+  };
+  $("shCopy").onclick=()=>{
+    const cmds=commands();navigator.clipboard&&navigator.clipboard.writeText(cmds);
+    $("shNote").textContent="copied "+cmds.split("\n").length+" lines";
+  };
+  shFields();
+})();
+
+// ---- share ----
+(()=>{
+  const note=t=>{$("shrNote").textContent=t;setTimeout(()=>{if($("shrNote").textContent===t)$("shrNote").textContent="";},1600);};
+  const copy=(txt,ok)=>{
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(()=>note(ok),()=>prompt("copy:",txt));
+    else prompt("copy:",txt);
+  };
+  $("shrRaw").onclick=()=>copy($("cmds").value,"commands copied");
+  $("shrFunc").onclick=()=>{
+    const name=($("shrName").value.trim()||"particles").replace(/[^a-z0-9_\-]/gi,"_");
+    const blob=new Blob([$("cmds").value+"\n"],{type:"text/plain"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name+".mcfunction";a.click();
+    note("exported "+name+".mcfunction");
+  };
+  $("shrLink").onclick=()=>{
+    const st={c:$("cmds").value,o:[origin.x,origin.y,origin.z],y:+cam.yaw.toFixed(3),p:+cam.pitch.toFixed(3),d:+cam.dist.toFixed(1)};
+    const hash=btoa(unescape(encodeURIComponent(JSON.stringify(st))));
+    const url=location.origin+location.pathname+"#"+hash;
+    history.replaceState(null,"","#"+hash);
+    copy(url,"link copied");
+  };
+  // load a shared scene from the url on startup
+  if(location.hash.length>1){
+    try{
+      const st=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+      if(typeof st.c==="string")$("cmds").value=st.c;
+      if(Array.isArray(st.o)){origin.x=+st.o[0]||0;origin.y=+st.o[1]||0;origin.z=+st.o[2]||0;
+        $("ox").value=origin.x;$("oy").value=origin.y;$("oz").value=origin.z;}
+      if(st.y!==undefined)cam.yaw=st.y;if(st.p!==undefined)cam.pitch=st.p;if(st.d!==undefined)cam.dist=st.d;
+    }catch(e){}
+  }
+})();
+
+resize();apply();if(window.autoGrow)window.autoGrow();requestAnimationFrame(frame);
 </script>
 </body>
 </html>
