@@ -46,6 +46,17 @@
   #errors .e{color:#fc5454} #errors .w{color:#fcfc54} #errors .ok{color:#54fc54}
   .origin-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   kbd{background:#000;color:#e0e0e0;padding:0 6px;border:1px solid #a0a0a0}
+  .statsBtn{margin-left:auto}
+  .kofi{margin-left:8px}
+  #statsPanel{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+    align-items:center;justify-content:center;z-index:50}
+  #statsPanel .box{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;
+    padding:14px 18px;min-width:280px;max-width:92vw;max-height:88vh;overflow:auto}
+  #statsPanel h2{margin:0 0 10px;font-size:24px;font-weight:normal;color:#1c1c1c}
+  .statRow{display:flex;justify-content:space-between;gap:20px;padding:3px 0;color:#3f3f3f}
+  .statRow b{color:#1c1c1c;font-weight:normal}
+  .stars{font-size:30px;letter-spacing:2px;cursor:pointer;color:#6b6b6b;user-select:none}
+  .stars span:hover,.stars span.on{color:#e0b010}
   .help{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;
     border-radius:50%;background:#4a4a4a;color:#fff;font-size:14px;cursor:help;border:2px solid #a0a0a0}
   .tabs{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 0}
@@ -84,6 +95,7 @@
     <h1>Particle Visualizer</h1>
     <span class="splash">Java 1.21.11!</span>
     <span class="hint">drag to orbit, scroll to zoom, double click ground to move origin</span>
+    <button id="statsBtn" class="statsBtn">Stats</button>
     <a class="kofi" href="https://ko-fi.com/itsjustluke" target="_blank" rel="noopener">Buy me a coffee</a>
   </header>
 
@@ -91,6 +103,21 @@
     <canvas id="cv"></canvas>
     <div class="hud" id="hud"></div>
   </div>
+
+  <div id="statsPanel"><div class="box">
+    <h2>Stats</h2>
+    <div class="statRow"><span>visits (everyone)</span><b id="stVisits">...</b></div>
+    <div class="statRow"><span>links shared (everyone)</span><b id="stShares">...</b></div>
+    <div class="statRow"><span>particles watched (everyone)</span><b id="stGParts">...</b></div>
+    <div class="statRow"><span>commands run (everyone)</span><b id="stGCmds">...</b></div>
+    <div class="statRow"><span>your visits</span><b id="stMyVisits">0</b></div>
+    <div class="statRow"><span>particles you've watched</span><b id="stParts">0</b></div>
+    <div class="statRow"><span>commands you've run</span><b id="stCmds">0</b></div>
+    <div class="statRow" style="margin-top:10px"><span>rating</span><b id="stAvg">...</b></div>
+    <div class="stars" id="stStars"><span data-v="1">&#9733;</span><span data-v="2">&#9733;</span><span data-v="3">&#9733;</span><span data-v="4">&#9733;</span><span data-v="5">&#9733;</span></div>
+    <div class="hint" id="stNote" style="margin-top:4px">tap a star to rate</div>
+    <div class="genrow" style="margin-top:12px"><button id="stClose">Close</button></div>
+  </div></div>
 
   <div class="tabs">
     <button class="tab active" data-tab="play">Playback</button>
@@ -756,6 +783,7 @@ function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
   if(def.missing&&Math.random()<.5)col=[17,17,17];
   p.col=col;
   particles.push(p);
+  if(typeof bumpLocal==="function")bumpLocal("parts",1);
 }
 function stepSim(){
   tick++;
@@ -1095,6 +1123,7 @@ $("clearBtn").onclick=()=>{particles=[];};
 function apply(){
   const {emitters:em,msgs}=parseCommands($("cmds").value);
   emitters=em;
+  if(typeof bumpLocal==="function")bumpLocal("cmds",em.length);
   $("errors").innerHTML=msgs.map(m=>`<div class="${m.t}">${m.t==="e"?"[error]":"[warn]"} ${m.m}</div>`).join("")+
     (em.length?`<div class="ok">${em.length} command${em.length>1?"s":""} loaded</div>`:"");
 }
@@ -1347,6 +1376,7 @@ const SHAPES={
     const hash=await pack(st);
     const url=location.origin+location.pathname+"#"+hash;
     history.replaceState(null,"","#"+hash);
+    if(typeof capiUp==="function")capiUp("shares");
     copy(url,"link copied ("+url.length+" chars)");
   };
   // load a shared scene from the url on startup
@@ -1360,6 +1390,82 @@ const SHAPES={
     }).catch(()=>{});
   }
 })();
+
+// ---- stats ----
+// github pages is static so there's no server of mine. global numbers come from
+// counterapi (free, no signup, the namespace makes itself on first hit). anything
+// personal stays in this browser via localStorage
+const STAT_NS="particle-visualizer-lukejw12";
+const CAPI="https://api.counterapi.dev/v1/"+STAT_NS+"/";
+const capiUp=k=>fetch(CAPI+k+"/up").then(r=>r.json()).then(j=>j.count).catch(()=>null);
+const capiGet=k=>fetch(CAPI+k+"/").then(r=>r.json()).then(j=>j.count).catch(()=>null);
+const store={
+  get(){try{return JSON.parse(localStorage.getItem("pvStats")||"{}");}catch(e){return{};}},
+  set(o){try{localStorage.setItem("pvStats",JSON.stringify(o));}catch(e){}}
+};
+const UNIT_P=10000,UNIT_C=100; // one api call per this many
+let pending={parts:0,cmds:0};
+function bumpLocal(k,n){
+  pending[k]=(pending[k]||0)+n;
+  const st=store.get();
+  if(k==="parts")st.qp=(st.qp||0)+n; else st.qc=(st.qc||0)+n;
+  store.set(st);
+}
+// every 15s push whole blocks, max 4 calls each so we never hammer the api.
+// leftovers queue in localStorage, but the queue is capped so it cant grow forever
+setInterval(()=>{
+  const st=store.get();let calls=0;
+  st.qp=Math.min(st.qp||0,UNIT_P*40);st.qc=Math.min(st.qc||0,UNIT_C*40);
+  while(st.qp>=UNIT_P&&calls<4){st.qp-=UNIT_P;capiUp("particles10k");calls++;}
+  calls=0;
+  while(st.qc>=UNIT_C&&calls<4){st.qc-=UNIT_C;capiUp("commands100");calls++;}
+  store.set(st);
+},15000);
+function flushLocal(){
+  if(!pending.parts&&!pending.cmds)return;
+  const st=store.get();
+  st.parts=(st.parts||0)+pending.parts;st.cmds=(st.cmds||0)+pending.cmds;
+  store.set(st);pending={parts:0,cmds:0};
+}
+setInterval(flushLocal,4000);
+addEventListener("beforeunload",flushLocal);
+(()=>{ // count one visit per browser session
+  const st=store.get();st.visits=(st.visits||0)+1;store.set(st);
+  try{
+    if(!sessionStorage.getItem("pvSeen")){sessionStorage.setItem("pvSeen","1");capiUp("visits");}
+  }catch(e){capiUp("visits");}
+})();
+function fmt(n){return n==null?"n/a":n.toLocaleString();}
+async function refreshStats(){
+  flushLocal();
+  const st=store.get();
+  $("stMyVisits").textContent=fmt(st.visits||0);
+  $("stParts").textContent=fmt(st.parts||0);
+  $("stCmds").textContent=fmt(st.cmds||0);
+  const mine=st.rating;
+  [...$("stStars").children].forEach(el=>el.classList.toggle("on",mine&&+el.dataset.v<=mine));
+  if(mine)$("stNote").textContent="you rated "+mine+"/5";
+  capiGet("visits").then(v=>$("stVisits").textContent=fmt(v));
+  capiGet("shares").then(v=>$("stShares").textContent=fmt(v));
+  capiGet("particles10k").then(v=>$("stGParts").textContent=v==null?"n/a":"~"+fmt(v*UNIT_P));
+  capiGet("commands100").then(v=>$("stGCmds").textContent=v==null?"n/a":"~"+fmt(v*UNIT_C));
+  // average = each star bucket weighted by how many picked it
+  const counts=await Promise.all([1,2,3,4,5].map(i=>capiGet("rating"+i)));
+  let tot=0,sum=0;
+  counts.forEach((c,i)=>{if(c){tot+=c;sum+=c*(i+1);}});
+  $("stAvg").textContent=tot?(sum/tot).toFixed(2)+" / 5 ("+tot+" votes)":"no votes yet";
+}
+$("statsBtn").onclick=()=>{$("statsPanel").style.display="flex";refreshStats();};
+$("stClose").onclick=()=>$("statsPanel").style.display="none";
+$("statsPanel").onclick=e=>{if(e.target.id==="statsPanel")$("statsPanel").style.display="none";};
+$("stStars").onclick=e=>{
+  const v=e.target.dataset&&e.target.dataset.v;if(!v)return;
+  const st=store.get();
+  if(st.rating){$("stNote").textContent="you already rated this "+st.rating+"/5";return;}
+  st.rating=+v;store.set(st);
+  capiUp("rating"+v).then(()=>refreshStats());
+  $("stNote").textContent="thanks!";
+};
 
 resize();apply();if(window.autoGrow)window.autoGrow();requestAnimationFrame(frame);
 </script>
