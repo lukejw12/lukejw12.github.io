@@ -346,9 +346,9 @@ const P={
  sneeze:{colors:["#6ee04d"],size:.07,life:[10,20],drag:.96,grav:.01,vel:.01},
  splash:{colors:["#5a86ff","#9ad8ff"],size:.06,life:[6,12],grav:.05,drag:.96,vel:.06,behavior:"crit"},
  rain:{colors:["#5a86ff"],size:.05,life:[6,12],grav:.06,vel:.02},
- cherry_leaves:{colors:["#ffb7d5","#f797c8"],size:.08,life:[100,200],behavior:"leaf"},
- pale_oak_leaves:{colors:["#c8c4b8","#e0dcd0"],size:.08,life:[100,200],behavior:"leaf"},
- tinted_leaves:{colors:["#78a848"],size:.08,life:[100,200],behavior:"leaf"},
+ cherry_leaves:{colors:["#ffb7d5","#f797c8"],size:.05,szW:[1,1.5],life:[300,300],grav:.00075,behavior:"leaf",wind:2,flowAway:1,dieOnGround:1},
+ pale_oak_leaves:{colors:["#c8c4b8","#e0dcd0"],size:.1,szW:[1,1.5],life:[300,300],grav:.00021,behavior:"leaf",wind:10,swirl:1,upF:-.021,dieOnGround:1},
+ tinted_leaves:{colors:["#78a848"],size:.1,szW:[1,1.5],life:[300,300],grav:.00021,behavior:"leaf",wind:10,swirl:1,upF:-.021,dieOnGround:1},
  spore_blossom_air:{colors:["#c8f0a0"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
  crimson_spore:{colors:["#c83a4a"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
  warped_spore:{colors:["#2bb9a8"],size:.04,life:[60,120],grav:.001,drag:.98,vel:.003},
@@ -420,9 +420,9 @@ Object.assign(P,{
  geyser_poof:{colors:["#e0ecf0"],size:.14,life8:1,drag:.96,vel:.02,behavior:"burst",curve:"pop"},
  noxious_gas:{colors:["#8aa03d","#a8b85a"],size:.12,life:[30,60],drag:.96,rise:.008,vel:.004,curve:"pop"},
  noxious_gas_cloud:{colors:["#8aa03d"],size:.3,life:[40,80],drag:.98,rise:.005,vel:.003,curve:"pop"},
- orange_poplar_leaves:{colors:["#e08a2b"],size:.08,life:[100,200],behavior:"leaf"},
- red_poplar_leaves:{colors:["#c84a2b"],size:.08,life:[100,200],behavior:"leaf"},
- yellow_poplar_leaves:{colors:["#e0c02b"],size:.08,life:[100,200],behavior:"leaf"},
+ orange_poplar_leaves:{colors:["#e08a2b"],size:.1,szW:[1,1.5],life:[300,300],grav:.00021,behavior:"leaf",wind:10,swirl:1,upF:-.021,dieOnGround:1},
+ red_poplar_leaves:{colors:["#c84a2b"],size:.1,szW:[1,1.5],life:[300,300],grav:.00021,behavior:"leaf",wind:10,swirl:1,upF:-.021,dieOnGround:1},
+ yellow_poplar_leaves:{colors:["#e0c02b"],size:.1,szW:[1,1.5],life:[300,300],grav:.00021,behavior:"leaf",wind:10,swirl:1,upF:-.021,dieOnGround:1},
  pause_mob_growth:{colors:["#8ab8f0"],size:.08,life:[14,24],drag:.98,rise:.02,vel:.002,glow:1},
  reset_mob_growth:{colors:["#8af0a8"],size:.08,life:[14,24],drag:.98,rise:.02,vel:.002,glow:1},
  sulfur_bubbles:{colors:["#e0d84d"],size:.07,life:[10,25],drag:.95,rise:.05,vel:.01},
@@ -515,6 +515,31 @@ V("falling_dust",{size:.1});
 ["effect","instant_effect","entity_effect","witch"].forEach(n=>V(n,{drag:.96,grav:-.004,
   lifeN:[8],size:.11,velMul:.2}));
 V("sculk_charge",{drag:.96,size:.22});
+// second audit pass. mc stores gravity as a multiplier and does yd -= 0.04*gravity,
+// so every value below is their number x 0.04
+["block","item","item_cobweb","item_slime","item_snowball"].forEach(n=>V(n,{grav:.04}));
+V("poof",{grav:-.004,drag:.9,size:.1,szW:[1,7],lifeN:[16,2]});   // floats up, not down
+V("splash",{grav:.0016});
+V("snowflake",{grav:.009,drag:1,size:.1,szW:[1,2],lifeN:[16,2]}); // no drag at all
+V("current_down",{grav:.00008,life:[30,90],drag:1});
+V("gust",{size:1});
+V("small_gust",{size:.5});
+V("trial_spawner_detection",{grav:-.004,drag:.96});               // this one does collide
+["dripping_water","falling_water","dripping_dripstone_water","falling_dripstone_water",
+ "dripping_lava","falling_lava","dripping_dripstone_lava","falling_honey","dripping_honey",
+ "falling_obsidian_tear","dripping_obsidian_tear","falling_nectar"].forEach(n=>V(n,{grav:.0024}));
+["nautilus","vault_connection"].forEach(n=>V(n,{life:[30,40],size:.05}));
+V("trail",{size:.26});
+V("squid_ink",{drag:.92,size:.5});V("glow_squid_ink",{drag:.92,size:.5});
+V("lava",{grav:.03,drag:.999});
+V("spit",{grav:.02});
+V("bubble_pop",{grav:.00032,life:[4,4]});
+V("elder_guardian",{life:[30,30]});
+// campfire smoke gravity is 3e-6, basically nothing. confirms it doesn't rise on its own
+["campfire_cosy_smoke","campfire_signal_smoke"].forEach(n=>V(n,{grav:0,rise:0}));
+["cloud","glow","firefly","sculk_charge_pop","dragon_breath","squid_ink","glow_squid_ink",
+ "current_down","nautilus","vault_connection"].forEach(n=>{if(P[n])P[n].noPhys=1;});
+if(P.trial_spawner_detection)P.trial_spawner_detection.noPhys=0;
 ["ash","white_ash","mycelium","spore_blossom_air","crimson_spore","warped_spore",
  "cherry_leaves","pale_oak_leaves","tinted_leaves","firefly","underwater","note"].forEach(n=>P[n].ignoreVel=1);
 const BLOCK_FAMILY=["block","falling_dust","block_marker","dust_pillar","block_crumble"];
@@ -705,6 +730,12 @@ function makeParticle(def,x,y,z,vx,vy,vz,ox2,oy2,oz2){
   if(def.behavior==="note")p.vy=.2;
   if(def.up)p.vy+=rand(def.up[0],def.up[1]);
   if(def.upF)p.vy+=def.upF;
+  if(def.behavior==="leaf"){
+    // one random roll drives both the drift angle (0-60 deg) and the swirl period
+    const pr=Math.random(),a=pr*60*Math.PI/180;
+    p.flowX=Math.cos(a)*def.wind;p.flowZ=Math.sin(a)*def.wind;
+    p.swirlT=(1000+pr*3000)*Math.PI/180;
+  }
   if(def.szW)p.szm=rand(def.szW[0],def.szW[1]);
   p.hidden=def.delayTicks||0;
   if(def.behavior==="trail"){
@@ -751,9 +782,12 @@ function stepSim(){
     if(d.behavior==="drip"){p.vy-=.05;}
     if(d.waft){p.vx+=(Math.random()-.5)*.0005;p.vz+=(Math.random()-.5)*.0005;}
     if(d.behavior==="leaf"){
-      p.vy=-.012;
-      p.vx+=Math.cos(p.age*.08+p.seed)*.0015;
-      p.vz+=Math.sin(p.age*.07+p.seed)*.0015;
+      const rel=Math.min(p.age/300,1);let xa=0,za=0;
+      // cherry drifts off in one direction, harder the longer it falls
+      if(d.flowAway){const f=Math.pow(rel,1.25);xa+=p.flowX*f;za+=p.flowZ*f;}
+      // pale oak / tinted spiral instead
+      if(d.swirl){xa+=rel*Math.cos(rel*p.swirlT)*d.wind;za+=rel*Math.sin(rel*p.swirlT)*d.wind;}
+      p.vx+=xa*.0025;p.vz+=za*.0025;
     }
     if(d.grav)p.vy-=d.grav;
     if(d.rise)p.vy+=d.rise*(1-Math.min(1,p.age/p.life*.5));
@@ -761,6 +795,7 @@ function stepSim(){
     p.x+=p.vx;p.y+=p.vy;p.z+=p.vz;
     if(gCol&&!d.noPhys&&p.x>=cgx-CR&&p.x<=cgx+CR&&p.z>=cgz-CR&&p.z<=cgz+CR){
       if(py0>=0&&p.y<0&&p.vy<0){ // landing on top
+        if(d.dieOnGround){particles.splice(i,1);continue;}
         p.y=.001;p.vy=0;p.vx*=.7;p.vz*=.7;
       }else if(py0<=0&&p.y>0&&p.vy>0){ // pressing on the underside
         p.y=-.001;p.vy=0;
@@ -1219,22 +1254,110 @@ const SHAPES={
     const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name+".mcfunction";a.click();
     note("exported "+name+".mcfunction");
   };
-  $("shrLink").onclick=()=>{
+  // base64url, no padding. keeps the hash url-safe and drops the =/+ escaping
+  const b64u={
+    enc:bytes=>{let str="";for(let i=0;i<bytes.length;i++)str+=String.fromCharCode(bytes[i]);
+      return btoa(str).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");},
+    dec:str=>{str=str.replace(/-/g,"+").replace(/_/g,"/");
+      const bin=atob(str),out=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out;}
+  };
+  // when every line is the same particle on a 0.1 grid (image traces, shape output)
+  // i can throw away the text entirely and ship a bitmap of which cells are lit.
+  // rows are padded to whole bytes so identical rows dedupe when deflated
+  const GRID_RE=/^particle (\S+) ~(-?\d*\.?\d+) ~(-?\d*\.?\d+) ~(-?\d*\.?\d+) ?(.*)$/;
+  const num=v=>String(Math.round(v*10)/10);
+  function gridEncode(st){
+    const lines=st.c.split("\n").map(l=>l.trim()).filter(Boolean);
+    if(lines.length<8)return null; // too small to be worth the header
+    let type=null,tail=null,yv=null;const pts=[];
+    for(const l of lines){
+      const m=GRID_RE.exec(l);if(!m)return null;
+      if(type===null){type=m[1];yv=m[3];tail=m[5];}
+      else if(m[1]!==type||m[3]!==yv||m[5]!==tail)return null;
+      const x=+m[2],z=+m[4],xi=Math.round(x*10),zi=Math.round(z*10);
+      if(Math.abs(xi/10-x)>1e-9||Math.abs(zi/10-z)>1e-9)return null; // off the 0.1 grid
+      pts.push([xi,zi]);
+    }
+    let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;
+    for(const[x,z]of pts){if(x<x0)x0=x;if(x>x1)x1=x;if(z<z0)z0=z;if(z>z1)z1=z;}
+    const W=x1-x0+1,H=z1-z0+1;
+    if(W*H>2000000)return null; // points too spread out, bitmap would be silly
+    const rb=(W+7)>>3,grid=new Uint8Array(rb*H);
+    for(const[x,z]of pts){const c=x-x0;grid[(z-z0)*rb+(c>>3)]|=1<<(c&7);}
+    // the importer walks rows top-down but columns right-to-left, shapes do other
+    // orders, so store which scan order rebuilds the exact same text
+    for(let ord=0;ord<4;ord++){
+      const hdr=[type,yv,tail,x0+" "+z0+" "+W+" "+H+" "+ord,
+        st.o.join(" "),[st.y,st.p,st.d].join(" ")].join("\n")+"\n";
+      const hb=new TextEncoder().encode(hdr),out=new Uint8Array(2+hb.length+grid.length);
+      out[0]=hb.length&255;out[1]=hb.length>>8;out.set(hb,2);out.set(grid,2+hb.length);
+      if(gridDecode(out).c===st.c)return out;
+    }
+    return null;
+  }
+  function gridDecode(bytes){
+    const hl=bytes[0]|(bytes[1]<<8);
+    const hdr=new TextDecoder().decode(bytes.slice(2,2+hl)).split("\n");
+    const[type,yv,tail]=hdr,[x0,z0,W,H,ord]=hdr[3].split(" ").map(Number);
+    const o=hdr[4].split(" ").map(Number),cam=hdr[5].split(" ").map(Number);
+    const rb=(W+7)>>3,grid=bytes.slice(2+hl),lines=[];
+    const rRev=ord&1,cRev=ord&2;
+    for(let i=0;i<H;i++){
+      const r=rRev?H-1-i:i;
+      for(let j=0;j<W;j++){
+        const c=cRev?W-1-j:j;
+        if(!(grid[r*rb+(c>>3)]>>(c&7)&1))continue;
+        lines.push(`particle ${type} ~${num((x0+c)/10)} ~${yv} ~${num((z0+r)/10)}`+(tail?" "+tail:""));
+      }
+    }
+    return {c:lines.join("\n"),o:o,y:cam[0],p:cam[1],d:cam[2]};
+  }
+  // particle commands repeat like crazy, so deflate shrinks a big scene by ~85%.
+  // "2" = grid bitmap, "1" = deflated json, "0" = plain, anything else = an old link
+  async function deflate(bytes){
+    const cs=new CompressionStream("deflate-raw"),wr=cs.writable.getWriter();
+    wr.write(bytes);wr.close();
+    return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+  }
+  async function inflate(bytes){
+    const ds=new DecompressionStream("deflate-raw"),wr=ds.writable.getWriter();
+    wr.write(bytes);wr.close();
+    return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+  async function pack(st){
+    const bytes=new TextEncoder().encode(JSON.stringify(st));
+    if(typeof CompressionStream==="undefined")return "0"+b64u.enc(bytes);
+    // try the bitmap first, but only keep it if it rebuilds the scene exactly
+    try{
+      const g=gridEncode(st);
+      if(g&&gridDecode(g).c===st.c)return "2"+b64u.enc(await deflate(g));
+    }catch(e){}
+    return "1"+b64u.enc(await deflate(bytes));
+  }
+  async function unpack(hash){
+    const v=hash[0],body=hash.slice(1);
+    if(v==="2")return gridDecode(await inflate(b64u.dec(body)));
+    if(v==="1")return JSON.parse(new TextDecoder().decode(await inflate(b64u.dec(body))));
+    if(v==="0")return JSON.parse(new TextDecoder().decode(b64u.dec(body)));
+    return JSON.parse(decodeURIComponent(escape(atob(hash)))); // links made before compression
+  }
+  $("shrLink").onclick=async()=>{
     const st={c:$("cmds").value,o:[origin.x,origin.y,origin.z],y:+cam.yaw.toFixed(3),p:+cam.pitch.toFixed(3),d:+cam.dist.toFixed(1)};
-    const hash=btoa(unescape(encodeURIComponent(JSON.stringify(st))));
+    const hash=await pack(st);
     const url=location.origin+location.pathname+"#"+hash;
     history.replaceState(null,"","#"+hash);
-    copy(url,"link copied");
+    copy(url,"link copied ("+url.length+" chars)");
   };
   // load a shared scene from the url on startup
   if(location.hash.length>1){
-    try{
-      const st=JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(1)))));
+    unpack(location.hash.slice(1)).then(st=>{
       if(typeof st.c==="string")$("cmds").value=st.c;
       if(Array.isArray(st.o)){origin.x=+st.o[0]||0;origin.y=+st.o[1]||0;origin.z=+st.o[2]||0;
         $("ox").value=origin.x;$("oy").value=origin.y;$("oz").value=origin.z;}
       if(st.y!==undefined)cam.yaw=st.y;if(st.p!==undefined)cam.pitch=st.p;if(st.d!==undefined)cam.dist=st.d;
-    }catch(e){}
+      particles=[];apply();if(window.autoGrow)window.autoGrow();
+    }).catch(()=>{});
   }
 })();
 
