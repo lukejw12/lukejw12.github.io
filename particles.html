@@ -1417,14 +1417,18 @@ const store={
   set(o){try{localStorage.setItem("pvStats",JSON.stringify(o));}catch(e){}}
 };
 const UNIT_P=10000,UNIT_C=100;
-(()=>{ // one visit per browser session, shared across all three pages
-  const st=store.get();st.visits=(st.visits||0)+1;store.set(st);
-  try{if(!sessionStorage.getItem("pvSeen")){sessionStorage.setItem("pvSeen","1");capiUp("visits");}}
-  catch(e){capiUp("visits");}
+(()=>{ // one visit per browser per day. counting per page load meant hopping
+  // between the three pages counted three times, and a new tab counted again
+  const st=store.get(),today=new Date().toISOString().slice(0,10);
+  if(st.lastVisit===today)return;
+  st.lastVisit=today;st.visits=(st.visits||0)+1;store.set(st);
+  // only count globally if that actually saved, otherwise every load would count
+  if(store.get().lastVisit===today)capiUp("visits");
 })();
 
 let pending={parts:0,cmds:0};
 function bumpLocal(k,n){
+  if(document.hidden)return; // a backgrounded tab shouldn't rack up numbers
   pending[k]=(pending[k]||0)+n;
   const st=store.get();
   if(k==="parts")st.qp=(st.qp||0)+n; else st.qc=(st.qc||0)+n;
