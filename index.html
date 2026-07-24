@@ -177,13 +177,16 @@ function applyBg(){
 }
 applyBg();
 
+const GISCUS_DARK="https://lukejw12.github.io/giscus-dark.css";
+const GISCUS_LIGHT="https://lukejw12.github.io/giscus-light.css";
+
 // dark mode toggle, remembered across all three pages
 (()=>{const b=document.getElementById("darkBtn");if(!b)return;
   const set=on=>{document.documentElement.classList.toggle("dark",on);
     b.setAttribute("aria-pressed",on?"true":"false");
     // keep giscus in step with the page theme
     const fr=document.querySelector("iframe.giscus-frame");
-    if(fr)fr.contentWindow.postMessage({giscus:{setConfig:{theme:on?"transparent_dark":"light"}}},"https://giscus.app");
+    if(fr)fr.contentWindow.postMessage({giscus:{setConfig:{theme:on?GISCUS_DARK:GISCUS_LIGHT}}},"https://giscus.app");
     try{localStorage.setItem("pvDark",on?"1":"0");}catch(e){}
     if(typeof applyBg==="function")applyBg();};
   set(document.documentElement.classList.contains("dark"));
@@ -221,7 +224,7 @@ async function refreshStats(){
   const attrs={"data-repo":"lukejw12/lukejw12.github.io","data-repo-id":"R_kgDOTfoEJw",
     "data-category":"General","data-category-id":"DIC_kwDOTfoEJ84DB3xT","data-mapping":"specific","data-term":"Site comments",
     "data-strict":"0","data-reactions-enabled":"0","data-emit-metadata":"0",
-    "data-input-position":"bottom","data-theme":dark?"transparent_dark":"light","data-lang":"en"};
+    "data-input-position":"bottom","data-theme":dark?GISCUS_DARK:GISCUS_LIGHT,"data-lang":"en"};
   for(const k in attrs)sc.setAttribute(k,attrs[k]);
   sc.crossOrigin="anonymous";sc.async=true;mount.appendChild(sc);
 })();
