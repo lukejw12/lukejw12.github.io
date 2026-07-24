@@ -14,38 +14,33 @@
     background-size:100% 100%,64px 64px;background-repeat:no-repeat,repeat;
     background-attachment:fixed,scroll;min-height:100vh;
     image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;image-rendering:pixelated}
-  .wrap{max-width:900px;margin:0 auto;padding:16px}
-  header{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
-  header h1{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
-  .splash{color:#fcfc54;text-shadow:2px 2px #3e3e14;transform:rotate(-4deg);display:inline-block;font-size:20px}
-  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
+  .wrap{max-width:600px;margin:0 auto;padding:14px 18px 28px}
+  .topbar{display:flex;justify-content:flex-end;margin-bottom:6px}
+  h1{font-size:30px;margin:0;text-align:center;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
+  .splash{display:block;text-align:center;color:#fcfc54;text-shadow:2px 2px #3e3e14;
+    transform:rotate(-3deg);font-size:19px;margin:6px 0 20px}
   button,.btn{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;
     text-shadow:2px 2px #3f3f3f;border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;
-    padding:5px 16px 3px;cursor:pointer;text-decoration:none;display:inline-block}
+    padding:6px 16px 4px;cursor:pointer;text-decoration:none;display:inline-block;
+    line-height:1.15;vertical-align:middle}
   button:hover,.btn:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
-  button:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
-  button.primary{background:#6d9c50;border-color:#c8e8b0 #2b451c #2b451c #c8e8b0}
-  button.primary:hover{background:#7cb35a;color:#fff}
-  .panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px}
-  label{color:#3f3f3f}
-  textarea{width:100%;min-height:130px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
-    font-family:'MinecraftTTF','VT323',monospace;font-size:18px;padding:8px 10px;resize:vertical;line-height:1.45}
-  textarea:focus,select:focus{outline:none;border-color:#fff}
-  select{font-family:'MinecraftTTF','VT323',monospace;font-size:18px;background:#000;color:#e0e0e0;
-    border:2px solid #a0a0a0;padding:3px 6px}
-  .kofi{position:fixed;right:16px;bottom:16px;z-index:20;font-size:19px;text-decoration:none;background:#29abe0;color:#fff;
-    text-shadow:2px 2px #14556e;border:2px solid;border-color:#a8dff5 #14556e #14556e #a8dff5;padding:5px 16px 3px}
-  .kofi:hover{background:#3dbbee;color:#fcfc9c}
-  a.cr{color:#54fc54;text-decoration:none;text-shadow:2px 2px #14421e}
-  a.cr:hover{color:#8cffb0;text-decoration:underline}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
-  .menu{max-width:520px;margin:8vh auto 0;display:flex;flex-direction:column;gap:14px}
-  .menu h1{font-size:44px;text-align:center;margin:0;color:#fff;text-shadow:4px 4px #3f3f3f;font-weight:normal}
-  .menu .splash{display:block;text-align:center;margin-bottom:18px}
-  .big{display:block;text-align:center;padding:16px;font-size:24px;text-decoration:none}
-  .big small{display:block;font-size:17px;color:#d0d0d0;text-shadow:2px 2px #2a2a2a;margin-top:2px}
+  button:active,.btn:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
+  .tools{display:flex;flex-direction:column;gap:12px}
+  .big{text-align:center;padding:18px 14px;font-size:24px}
+  .big small{display:block;font-size:17px;color:#d0d0d0;text-shadow:2px 2px #2a2a2a;margin-top:3px}
   .big:hover small{color:#fcfc9c}
-
+  .bottomRow{display:flex;gap:10px;margin-top:22px;align-items:stretch;
+    max-width:430px;margin-left:auto;margin-right:auto}
+  .bottomRow>*{flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center}
+  .iconBtn{padding:6px 9px;line-height:0}
+  .iconBtn svg{width:22px;height:22px}
+  .iconBtn .ic-sun{display:none}
+  .iconBtn .ic-moon{display:block}
+  html.dark .iconBtn .ic-moon{display:none}
+  html.dark .iconBtn .ic-sun{display:block}
+  .panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px;margin-top:22px}
+  .panel h2{margin:0 0 8px;font-size:22px;font-weight:normal;color:#1c1c1c}
+  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
   #statsPanel{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
     align-items:center;justify-content:center;z-index:30}
   #statsPanel .box{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;
@@ -56,64 +51,58 @@
   .sep{height:2px;background:#a5a5a5;border-bottom:1px solid #fff;margin:8px 0}
   .stars{font-size:30px;letter-spacing:2px;cursor:pointer;color:#6b6b6b;user-select:none}
   .stars span:hover,.stars span.on{color:#e0b010}
-  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
   #statsPanel .hint{color:#5a5a5a;text-shadow:none}
-  @media(max-width:700px){.menu{margin-top:4vh}.menu h1{font-size:32px}}
-
-  /* dark mode. deepslate instead of dirt, blue/black buttons, light text */
+  /* dark mode: deepslate, blue/black buttons, light text */
   html.dark body{color:#d8dbe2;
     background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),
       url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png")}
-  html.dark header h1,html.dark .menu h1{color:#fff;text-shadow:3px 3px #0c0e12}
+  html.dark h1{color:#fff;text-shadow:3px 3px #0c0e12}
   html.dark .hint{color:#8b93a3;text-shadow:2px 2px #0c0e12}
-  html.dark .splash{color:#fcfc54;text-shadow:2px 2px #2a2a10}
   html.dark button,html.dark .btn{background:#2f3648;color:#e6e9f0;text-shadow:2px 2px #0c0e12;
     border-color:#5a6480 #10131a #10131a #5a6480}
   html.dark button:hover,html.dark .btn:hover{background:#3d4a6b;color:#9ecbff;
     border-color:#7f92c0 #141a26 #141a26 #7f92c0}
   html.dark button:active,html.dark .btn:active{border-color:#10131a #5a6480 #5a6480 #10131a}
-  html.dark button.primary{background:#2f5da8;border-color:#7fa8e8 #10203a #10203a #7fa8e8}
-  html.dark button.primary:hover{background:#3d72c8;color:#fff}
-  html.dark .panel,html.dark .controls,html.dark #statsPanel .box{background:#23262e;
+  html.dark .big small{color:#aeb6c6}
+  html.dark .panel,html.dark #statsPanel .box{background:#23262e;
     border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
-  html.dark .tab{background:#1b1e25;color:#8b93a3;border-color:#3f4552 #10131a #10131a #3f4552}
-  html.dark .tab.active{background:#23262e;color:#fff;border-color:#5a6480 #10131a #23262e #5a6480}
-  html.dark .tab:hover{background:#3d4a6b;color:#9ecbff}
-  html.dark label,html.dark .statRow{color:#c3c8d4}
-  html.dark .statRow b,html.dark #statsPanel h2{color:#fff}
-  html.dark textarea,html.dark select,html.dark input[type=number],
-  html.dark .genrow input,html.dark .genout,html.dark code,html.dark kbd{
-    background:#0c0e12;color:#d8dbe2;border-color:#4a5162}
-  html.dark textarea:focus,html.dark select:focus,html.dark input:focus{border-color:#9ecbff}
-  html.dark .sep{background:#3f4552;border-right-color:#5a6480;border-bottom-color:#5a6480}
-  html.dark details{background:#1b1e25;border-color:#3f4552 #10131a #10131a #3f4552}
-  html.dark details summary{color:#e6e9f0}
-  html.dark details .body{color:#c3c8d4}
-  html.dark details.warn{background:#3a3320;border-color:#8a7a30 #201c10 #201c10 #8a7a30}
-  html.dark .hud{background:rgba(20,22,28,.55)}
-  html.dark .viewport{border-color:#10131a #3f4552 #3f4552 #10131a}
-  html.dark .help{background:#2f3648;border-color:#5a6480}
+  html.dark .panel h2,html.dark #statsPanel h2,html.dark .statRow b{color:#fff}
+  html.dark .statRow{color:#c3c8d4}
+  html.dark .sep{background:#3f4552;border-bottom-color:#5a6480}
   html.dark #statsPanel .hint{color:#8b93a3}
-  html.dark .kofi{background:#1e7fa8}
-  html.dark .kofi{border-color:#6fc3e0 #0a3a4e #0a3a4e #6fc3e0}
-
-  .corner{position:fixed;left:16px;bottom:16px;z-index:20;display:flex;gap:8px}
+  @media(max-width:520px){.wrap{padding:12px 12px 24px}h1{font-size:24px}.big{font-size:20px}}
 </style>
 </head>
 <body>
 <script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
-<div class="menu">
+<div class="wrap">
+  <div class="topbar">
+    <button id="darkBtn" class="iconBtn" title="Toggle dark mode" aria-label="Toggle dark mode" aria-pressed="false"><svg class="ic-sun" viewBox="0 0 9 9" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="0" y="4" width="2" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="3" y="5" width="3" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/><rect x="4" y="8" width="1" height="1"/></svg><svg class="ic-moon" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="2" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="0" y="4" width="4" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="8" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/></svg></button>
+  </div>
+
   <h1>Luke's Cool Tools</h1>
   <span class="splash" id="splash">Java 1.21.11!</span>
 
-  <a class="btn big" href="particles.html">Particle Visualizer
-    <small>preview /particle commands in 3d</small></a>
+  <div class="tools">
+    <a class="btn big" href="particles.html">Particle Visualizer
+      <small>preview /particle commands in 3d</small></a>
+    <a class="btn big" href="advancement-updater.html">Advancement Updater
+      <small>migrate advancement json between versions</small></a>
+  </div>
 
-  <a class="btn big" href="advancement-updater.html">Advancement Updater
-    <small>migrate advancement json between versions</small></a>
+  <div class="bottomRow">
+    <a class="btn" href="https://ko-fi.com/itsjustluke" target="_blank" rel="noopener">Buy me a coffee</a>
+    <button id="statsBtn">Stats</button>
+  </div>
 
+  <div class="panel">
+    <h2>Comments</h2>
+    <p class="hint" style="color:#5a5a5a;text-shadow:none;margin:0 0 8px">
+      sign in with GitHub to leave a comment. replies show up here and in the repo.</p>
+    <div id="giscusMount"></div>
+  </div>
 </div>
-<div class="corner"><button id="darkBtn">Dark</button><button id="statsBtn">Stats</button></div>
+
 <div id="statsPanel"><div class="box">
   <h2>Stats</h2>
   <div class="statRow"><span>visits</span><b id="stVisits">...</b></div>
@@ -131,7 +120,6 @@
   <div class="hint" id="stNote" style="margin-top:4px">tap a star to rate</div>
   <div style="margin-top:12px"><button id="stClose">Close</button></div>
 </div></div>
-<a class="kofi" href="https://ko-fi.com/itsjustluke" target="_blank" rel="noopener">Buy me a coffee</a>
 <script>
 // old share links pointed at the site root back when the visualiser was the front
 // page, so forward anything with a hash instead of breaking them
@@ -155,10 +143,13 @@ const store={
   set(o){try{localStorage.setItem("pvStats",JSON.stringify(o));}catch(e){}}
 };
 const UNIT_P=10000,UNIT_C=100;
-(()=>{ // one visit per browser session, shared across all three pages
-  const st=store.get();st.visits=(st.visits||0)+1;store.set(st);
-  try{if(!sessionStorage.getItem("pvSeen")){sessionStorage.setItem("pvSeen","1");capiUp("visits");}}
-  catch(e){capiUp("visits");}
+(()=>{ // one visit per browser per day. counting per page load meant hopping
+  // between the three pages counted three times, and a new tab counted again
+  const st=store.get(),today=new Date().toISOString().slice(0,10);
+  if(st.lastVisit===today)return;
+  st.lastVisit=today;st.visits=(st.visits||0)+1;store.set(st);
+  // only count globally if that actually saved, otherwise every load would count
+  if(store.get().lastVisit===today)capiUp("visits");
 })();
 
 
@@ -189,7 +180,10 @@ applyBg();
 // dark mode toggle, remembered across all three pages
 (()=>{const b=document.getElementById("darkBtn");if(!b)return;
   const set=on=>{document.documentElement.classList.toggle("dark",on);
-    b.textContent=on?"Light":"Dark";
+    b.setAttribute("aria-pressed",on?"true":"false");
+    // keep giscus in step with the page theme
+    const fr=document.querySelector("iframe.giscus-frame");
+    if(fr)fr.contentWindow.postMessage({giscus:{setConfig:{theme:on?"transparent_dark":"light"}}},"https://giscus.app");
     try{localStorage.setItem("pvDark",on?"1":"0");}catch(e){}
     if(typeof applyBg==="function")applyBg();};
   set(document.documentElement.classList.contains("dark"));
@@ -218,6 +212,19 @@ async function refreshStats(){
   counts.forEach((c,i)=>{if(c){tot+=c;sum+=c*(i+1);}});
   $("stAvg").textContent=tot?(sum/tot).toFixed(2)+" / 5 ("+tot+" votes)":"no votes yet";
 }
+// load giscus with the theme the page is actually using
+(()=>{
+  const mount=document.getElementById("giscusMount");if(!mount)return;
+  const dark=document.documentElement.classList.contains("dark");
+  const sc=document.createElement("script");
+  sc.src="https://giscus.app/client.js";
+  const attrs={"data-repo":"lukejw12/lukejw12.github.io","data-repo-id":"R_kgDOTfoEJw",
+    "data-category":"General","data-category-id":"DIC_kwDOTfoEJ84DB3xT","data-mapping":"specific","data-term":"Site comments",
+    "data-strict":"0","data-reactions-enabled":"0","data-emit-metadata":"0",
+    "data-input-position":"bottom","data-theme":dark?"transparent_dark":"light","data-lang":"en"};
+  for(const k in attrs)sc.setAttribute(k,attrs[k]);
+  sc.crossOrigin="anonymous";sc.async=true;mount.appendChild(sc);
+})();
 $("statsBtn").onclick=()=>{$("statsPanel").style.display="flex";refreshStats();};
 $("stClose").onclick=()=>$("statsPanel").style.display="none";
 $("statsPanel").onclick=e=>{if(e.target.id==="statsPanel")$("statsPanel").style.display="none";};
