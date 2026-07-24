@@ -160,10 +160,13 @@ const store={
   set(o){try{localStorage.setItem("pvStats",JSON.stringify(o));}catch(e){}}
 };
 const UNIT_P=10000,UNIT_C=100;
-(()=>{ // one visit per browser session, shared across all three pages
-  const st=store.get();st.visits=(st.visits||0)+1;store.set(st);
-  try{if(!sessionStorage.getItem("pvSeen")){sessionStorage.setItem("pvSeen","1");capiUp("visits");}}
-  catch(e){capiUp("visits");}
+(()=>{ // one visit per browser per day. counting per page load meant hopping
+  // between the three pages counted three times, and a new tab counted again
+  const st=store.get(),today=new Date().toISOString().slice(0,10);
+  if(st.lastVisit===today)return;
+  st.lastVisit=today;st.visits=(st.visits||0)+1;store.set(st);
+  // only count globally if that actually saved, otherwise every load would count
+  if(store.get().lastVisit===today)capiUp("visits");
 })();
 
 // count a conversion only when the input is actually valid json
