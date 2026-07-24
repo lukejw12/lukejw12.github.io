@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advancement Updater</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+  @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
+  *{box-sizing:border-box;image-rendering:pixelated}
+  body{margin:0;font-family:'MinecraftTTF','VT323',monospace;font-size:19px;color:#3f3f3f;
+    background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
+      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png");
+    background-size:100% 100%,64px 64px;background-repeat:no-repeat,repeat;
+    background-attachment:fixed,scroll;min-height:100vh;
+    image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;image-rendering:pixelated}
+  .wrap{max-width:900px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+  header h1{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
+  .splash{color:#fcfc54;text-shadow:2px 2px #3e3e14;transform:rotate(-4deg);display:inline-block;font-size:20px}
+  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
+  button,.btn{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;
+    text-shadow:2px 2px #3f3f3f;border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;
+    padding:5px 16px 3px;cursor:pointer;text-decoration:none;display:inline-block}
+  button:hover,.btn:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
+  button:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
+  button.primary{background:#6d9c50;border-color:#c8e8b0 #2b451c #2b451c #c8e8b0}
+  button.primary:hover{background:#7cb35a;color:#fff}
+  .panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px}
+  label{color:#3f3f3f}
+  textarea{width:100%;min-height:130px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'MinecraftTTF','VT323',monospace;font-size:18px;padding:8px 10px;resize:vertical;line-height:1.45}
+  textarea:focus,select:focus{outline:none;border-color:#fff}
+  select{font-family:'MinecraftTTF','VT323',monospace;font-size:18px;background:#000;color:#e0e0e0;
+    border:2px solid #a0a0a0;padding:3px 6px}
+  a.cr{color:#54fc54;text-decoration:none;text-shadow:2px 2px #14421e}
+  a.cr:hover{color:#8cffb0;text-decoration:underline}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  #err{color:#fc5454;text-shadow:2px 2px rgba(0,0,0,.8);min-height:22px;margin:6px 0}
+  details{background:#b8b8b8;border:2px solid;border-color:#e8e8e8 #6b6b6b #6b6b6b #e8e8e8;
+    padding:6px 10px;margin-top:8px}
+  details summary{cursor:pointer;color:#1c1c1c}
+  details .body{padding:6px 2px;color:#3f3f3f;font-size:18px;line-height:1.4;
+    overflow-wrap:anywhere;word-break:break-word}
+  details summary{overflow-wrap:anywhere}
+  details,.panel{max-width:100%;overflow-x:hidden}
+  details.warn{border-color:#f0d060 #8a6a10 #8a6a10 #f0d060;background:#d8c88a}
+  .ver{display:inline-block;background:#000;color:#54fc54;padding:0 6px;margin-right:8px;font-size:16px}
+  code{font-family:'MinecraftTTF','VT323',monospace;background:#000;color:#54fc54;padding:0 4px;
+    overflow-wrap:anywhere;word-break:break-word}
+  .note{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px;margin-top:14px}
+  .note a{color:#54fc54}
+  .meta{margin:8px 0 6px;color:#4a4a4a}
+  .chlink{display:inline-block;background:#8b8b8b;color:#fff;text-shadow:2px 2px #3f3f3f;
+    border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;padding:3px 12px 1px;
+    text-decoration:none;font-size:17px}
+  .chlink:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
+  .chlink:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
+  @media(max-width:700px){
+    .wrap{padding:8px}
+    .row{gap:8px}
+    .row button,.row select,.row .btn{flex:1 1 auto;min-width:0}
+    textarea{font-size:16px}
+    details .body,code{font-size:16px}
+    .ver{margin-right:6px;font-size:14px}
+  }
+
+  /* dark mode. deepslate instead of dirt, blue/black buttons, light text */
+  html.dark body{color:#d8dbe2;
+    background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),
+      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png")}
+  html.dark header h1,html.dark .menu h1{color:#fff;text-shadow:3px 3px #0c0e12}
+  html.dark .hint{color:#8b93a3;text-shadow:2px 2px #0c0e12}
+  html.dark .splash{color:#fcfc54;text-shadow:2px 2px #2a2a10}
+  html.dark button,html.dark .btn{background:#2f3648;color:#e6e9f0;text-shadow:2px 2px #0c0e12;
+    border-color:#5a6480 #10131a #10131a #5a6480}
+  html.dark button:hover,html.dark .btn:hover{background:#3d4a6b;color:#9ecbff;
+    border-color:#7f92c0 #141a26 #141a26 #7f92c0}
+  html.dark button:active,html.dark .btn:active{border-color:#10131a #5a6480 #5a6480 #10131a}
+  html.dark button.primary{background:#2f5da8;border-color:#7fa8e8 #10203a #10203a #7fa8e8}
+  html.dark button.primary:hover{background:#3d72c8;color:#fff}
+  html.dark .panel,html.dark .controls,html.dark #statsPanel .box{background:#23262e;
+    border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
+  html.dark .tab{background:#1b1e25;color:#8b93a3;border-color:#3f4552 #10131a #10131a #3f4552}
+  html.dark .tab.active{background:#23262e;color:#fff;border-color:#5a6480 #10131a #23262e #5a6480}
+  html.dark .tab:hover{background:#3d4a6b;color:#9ecbff}
+  html.dark label,html.dark .statRow{color:#c3c8d4}
+  html.dark .statRow b,html.dark #statsPanel h2{color:#fff}
+  html.dark textarea,html.dark select,html.dark input[type=number],
+  html.dark .genrow input,html.dark .genout,html.dark code,html.dark kbd{
+    background:#0c0e12;color:#d8dbe2;border-color:#4a5162}
+  html.dark textarea:focus,html.dark select:focus,html.dark input:focus{border-color:#9ecbff}
+  html.dark .sep{background:#3f4552;border-right-color:#5a6480;border-bottom-color:#5a6480}
+  html.dark details{background:#1b1e25;border-color:#3f4552 #10131a #10131a #3f4552}
+  html.dark details summary{color:#e6e9f0}
+  html.dark details .body{color:#c3c8d4}
+  html.dark .meta{color:#9aa2b2}
+  html.dark .chlink{background:#2f3648;color:#e6e9f0;text-shadow:2px 2px #0c0e12;
+    border-color:#5a6480 #10131a #10131a #5a6480}
+  html.dark .chlink:hover{background:#3d4a6b;color:#9ecbff;
+    border-color:#7f92c0 #141a26 #141a26 #7f92c0}
+  html.dark details.warn{background:#3a3320;border-color:#8a7a30 #201c10 #201c10 #8a7a30}
+  html.dark .hud{background:rgba(20,22,28,.55)}
+  html.dark .viewport{border-color:#10131a #3f4552 #3f4552 #10131a}
+  html.dark .help{background:#2f3648;border-color:#5a6480}
+  html.dark #statsPanel .hint{color:#8b93a3}
+  html.dark .kofi{background:#1e7fa8}
+  html.dark .kofi{border-color:#6fc3e0 #0a3a4e #0a3a4e #6fc3e0}
+
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
+<div class="wrap">
+  <header>
+    <h1>Advancement Updater</h1>
+    <span class="splash" id="splash">datapacks!</span>
+    <span class="hint">updates advancement json between versions</span>
+    <a class="btn" href="index.html" style="margin-left:auto">&larr; Menu</a>
+    <button id="darkBtn">Dark</button>
+  </header>
+
+  <div class="panel">
+    <label for="in">Advancement JSON</label>
+    <textarea id="in" spellcheck="false" autocapitalize="off" placeholder="Paste an advancement file here"></textarea>
+    <p id="err"></p>
+    <div class="row">
+      <label for="tgt">Update to</label>
+      <select id="tgt"></select>
+      <button id="go" class="primary">Convert</button>
+    </div>
+    <textarea id="out" readonly placeholder="Output appears here"></textarea>
+    <div class="row">
+      <button id="copy">Copy</button>
+      <button id="dl">Download .json</button>
+    </div>
+    <details id="changesTab">
+      <summary>Changes (0)</summary>
+      <div class="body" id="changesList"><em>Convert a file to see changes.</em></div>
+    </details>
+  </div>
+
+</div>
+<script>
+// 90% of the time it's one of the two normal ones, 10% something dumb
+const SPLASH_MAIN=["Java 1.21.11!","Thanks for using this tool!"];
+const SPLASH_RARE=["Not affiliated with Mojang!","No warranty!","May contain traces of dirt!",
+  "No creepers in here!","Not a bug, it's a feature!","I see you","<s>Bug-Free!</s>","Leave a rating!"];
+(()=>{const e=document.getElementById("splash");if(!e)return;
+  const pool=Math.random()<0.9?SPLASH_MAIN:SPLASH_RARE;
+  e.innerHTML=pool[Math.random()*pool.length|0];})();
+
+// no server here, so global numbers live on counterapi. personal stuff stays local
+const STAT_NS="particle-visualizer-lukejw12";
+const CAPI="https://api.counterapi.dev/v1/"+STAT_NS+"/";
+const capiUp=k=>fetch(CAPI+k+"/up").then(r=>r.json()).then(j=>j.count).catch(()=>null);
+const capiGet=k=>fetch(CAPI+k+"/").then(r=>r.json()).then(j=>j.count).catch(()=>null);
+const store={
+  get(){try{return JSON.parse(localStorage.getItem("pvStats")||"{}");}catch(e){return{};}},
+  set(o){try{localStorage.setItem("pvStats",JSON.stringify(o));}catch(e){}}
+};
+const UNIT_P=10000,UNIT_C=100;
+(()=>{ // one visit per browser session, shared across all three pages
+  const st=store.get();st.visits=(st.visits||0)+1;store.set(st);
+  try{if(!sessionStorage.getItem("pvSeen")){sessionStorage.setItem("pvSeen","1");capiUp("visits");}}
+  catch(e){capiUp("visits");}
+})();
+
+// count a conversion only when the input is actually valid json
+document.getElementById("go").addEventListener("click",()=>{
+  try{JSON.parse(document.getElementById("in").value);capiUp("advancements");}catch(e){}
+});
+
+// ios safari ignores image-rendering:pixelated on background images, so it smooths
+// the 16px tile up to 64 and the smoothing bleeds past each tile edge, which is the
+// faint grid. upscale it ourselves with smoothing off and hand the browser a tile
+// it can place at native size
+const TEX_LIGHT="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png";
+const TEX_DARK="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png";
+const texCache={};
+function applyBg(){
+  const dark=document.documentElement.classList.contains("dark");
+  const url=dark?TEX_DARK:TEX_LIGHT, shade=dark?".55":".62";
+  const paint=data=>{document.body.style.backgroundImage=
+    "linear-gradient(rgba(0,0,0,"+shade+"),rgba(0,0,0,"+shade+")),url("+data+")";};
+  if(texCache[url])return paint(texCache[url]);
+  const im=new Image();im.crossOrigin="anonymous";
+  im.onload=()=>{
+    const c=document.createElement("canvas");c.width=c.height=64;
+    const x=c.getContext("2d");x.imageSmoothingEnabled=false;
+    x.drawImage(im,0,0,64,64);
+    try{texCache[url]=c.toDataURL();paint(texCache[url]);}catch(e){}
+  };
+  im.src=url;
+}
+applyBg();
+
+// dark mode toggle, remembered across all three pages
+(()=>{const b=document.getElementById("darkBtn");if(!b)return;
+  const set=on=>{document.documentElement.classList.toggle("dark",on);
+    b.textContent=on?"Light":"Dark";
+    try{localStorage.setItem("pvDark",on?"1":"0");}catch(e){}
+    if(typeof applyBg==="function")applyBg();};
+  set(document.documentElement.classList.contains("dark"));
+  b.onclick=()=>set(!document.documentElement.classList.contains("dark"));})();
+
+</script>
+<script>
+// Versions and their data pack formats, from the wiki's pack format table.
+// The format tuple is what decides which migrations get applied.
+const versions = [
+  ["1.21.11", [94,1]],
+  ["26.1 Snapshot 1", [95,0]], ["26.1 Snapshot 2", [96,0]], ["26.1 Snapshot 3", [97,0]],
+  ["26.1 Snapshot 4", [97,1]], ["26.1 Snapshot 5", [98,0]], ["26.1 Snapshot 6", [99,0]],
+  ["26.1 Snapshot 7", [99,1]], ["26.1 Snapshot 8", [99,2]], ["26.1 Snapshot 9", [99,2]],
+  ["26.1 Snapshot 10", [99,3]], ["26.1 Snapshot 11", [100,0]],
+  ["26.1 (release)", [101,1]],
+  ["26.2 Snapshot 1", [101,2]], ["26.2 Snapshot 2", [101,2]], ["26.2 Snapshot 3", [102,0]],
+  ["26.2 Snapshot 4", [103,0]], ["26.2 Snapshot 5", [104,0]], ["26.2 Snapshot 6", [105,0]],
+  ["26.2 Snapshot 7", [105,1]], ["26.2 Snapshot 8", [106,0]],
+  ["26.2 (release)", [107,1]],
+  ["26.3 Snapshot 1", [108,0]], ["26.3 Snapshot 2", [109,0]], ["26.3 Snapshot 3", [110,0]],
+  ["26.3 Snapshot 4", [111,0]]
+];
+const atLeast = (a, b) => a[0] > b[0] || (a[0] === b[0] && a[1] >= b[1]);
+
+const s3url = "https://www.minecraft.net/en-us/article/minecraft-26-2-snapshot-3";
+const s4url = "https://www.minecraft.net/en-us/article/minecraft-26-2-snapshot-4";
+const s263url = "https://www.minecraft.net/en-us/article/minecraft-26-3-snapshot-4";
+
+const changeInfo = {
+  ent_type: { v:"26.2 Snapshot 3", p:"102.0", u:s3url,
+    d:"The entity predicate format changed from a fixed set of optional fields to a component-map style where every key is an identifier. The one field that had to be renamed is the entity type: <code>type</code> is now <code>minecraft:entity_type</code>. Fields it does not recognise are now rejected outright rather than ignored." },
+  ts_comp: { v:"26.2 Snapshot 3", p:"102.0", u:s3url,
+    d:"Type-specific sub-predicates no longer live in a <code>type_specific</code> wrapper with an inner <code>type</code>. Each one became its own top-level key in the entity predicate, e.g. <code>minecraft:type_specific/player</code>, <code>type_specific/lightning</code>, <code>type_specific/fishing_hook</code>, <code>type_specific/raider</code>." },
+  slime: { v:"26.2 Snapshot 4", p:"103.0", u:s4url,
+    d:"The slime sub-predicate was renamed from <code>minecraft:type_specific/slime</code> to <code>minecraft:type_specific/cube_mob</code>, because it now also covers Sulfur Cubes in addition to Slimes and Magma Cubes." },
+  cond_type: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"In predicates (loot conditions), the field that names the condition type was renamed from <code>condition</code> to <code>type</code>. The type is also mandatory now, and no longer defaults to <code>minecraft:entity_properties</code>." },
+  list_allof: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"Trigger fields that took a plain list of conditions no longer treat that list as an implicit <code>all_of</code>. That shorthand was removed, so multiple conditions now need an explicit <code>minecraft:all_of</code> object with the list under <code>terms</code>." },
+  pred_field: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"Entity fields on triggers (<code>player</code>, <code>entity</code>, <code>villager</code>, <code>source</code>, <code>cause</code>, etc.) now accept an inline predicate or a namespaced ID of a <code>minecraft:predicate</code>. A bare entity predicate object gets wrapped in a <code>minecraft:entity_properties</code> condition to match the new format." },
+  blocks: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"In the <code>enter_block</code>, <code>bee_nest_destroyed</code> and <code>slide_down_block</code> triggers, the <code>block</code> field was renamed to <code>blocks</code> and now also accepts a list of block IDs or a #-prefixed block tag." },
+  recipes: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"In <code>recipe_crafted</code> and <code>crafter_recipe_crafted</code> the <code>recipe_id</code> field was renamed to <code>recipes</code>; in <code>recipe_unlocked</code> the <code>recipe</code> field was renamed to <code>recipes</code>. These now also accept a list of recipe IDs or a #-prefixed recipe tag, and fire when any of the listed recipes match." },
+  loot_tables: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"In <code>player_generates_container_loot</code> the <code>loot_table</code> field was renamed to <code>loot_tables</code> and now accepts a single ID, a list of IDs, inline values, or a #-prefixed loot table tag." },
+  potion: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"The <code>potion</code> field of the <code>brewed_potion</code> trigger no longer takes a plain potion ID. It now takes a <code>minecraft:potion_contents</code> data component predicate, so the old ID becomes <code>{\"potions\": [id]}</code>." },
+  match_block: { v:"26.3 Snapshot 4", p:"111.0", u:s263url,
+    d:"The <code>minecraft:block_state_property</code> condition type was removed and fully replaced by <code>minecraft:match_block</code>, which matches blocks (<code>blocks</code> field), block state properties (<code>state</code> field), and optionally block entity NBT/components." },
+  reference: { v:"26.3 Snapshot 4", p:"111.0", u:s263url, warn:true,
+    d:"The <code>minecraft:reference</code> condition type became obsolete and was removed. Any field that takes a condition now accepts a namespaced predicate ID directly." },
+  manual: { v:"n/a", p:"n/a", u:s263url, warn:true,
+    d:"This part could not be converted automatically. Check it by hand against the linked changelog." }
+};
+
+const isObj = v => v !== null && typeof v === "object" && !Array.isArray(v);
+const strip = id => typeof id === "string" ? id.replace(/^minecraft:/, "") : "";
+const clone = v => JSON.parse(JSON.stringify(v));
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const conditionTypes = new Set(["entity_properties","all_of","any_of","inverted","reference",
+  "random_chance","random_chance_with_enchanted_bonus","value_check","time_check","weather_check",
+  "location_check","match_tool","block_state_property","match_block","damage_source_properties",
+  "entity_scores","killed_by_player","survives_explosion","table_bonus","enchant_active",
+  "stopwatch","environment_attribute_check"]);
+const isCondType = v => typeof v === "string" && conditionTypes.has(strip(v));
+
+// which trigger fields hold entity predicates / condition lists
+const entityFields = {
+  bred_animals: ["child","parent","partner"], cured_zombie_villager: ["villager","zombie"],
+  effects_changed: ["source"], fall_after_explosion: ["cause"], fishing_rod_hooked: ["entity"],
+  player_killed_entity: ["entity"], entity_killed_player: ["entity"],
+  kill_mob_near_sculk_catalyst: ["entity"], killed_by_arrow: ["entity"],
+  lightning_strike: ["bystander","lightning"],
+  thrown_item_picked_up_by_player: ["entity"], thrown_item_picked_up_by_entity: ["entity"],
+  player_hurt_entity: ["entity"], player_interacted_with_entity: ["entity"],
+  player_sheared_equipment: ["entity"], summoned_entity: ["entity"], tame_animal: ["entity"],
+  target_hit: ["projectile"], villager_trade: ["villager"], channeled_lightning: ["victims"]
+};
+const locationFields = {
+  placed_block: ["location"], item_used_on_block: ["location"], allay_drop_item_on_block: ["location"],
+  any_block_use: ["location"], default_block_use: ["location"]
+};
+const blockRename = new Set(["enter_block","bee_nest_destroyed","slide_down_block"]);
+
+// 26.2 Snapshot 3 entity predicate rework (slime becomes cube_mob one snapshot later)
+function apply262(adv, log, cubeMob) {
+  const slimeKey = cubeMob ? "type_specific/cube_mob" : "type_specific/slime";
+  const tsMap = { lightning:"type_specific/lightning", fishing_hook:"type_specific/fishing_hook",
+    player:"type_specific/player", raider:"type_specific/raider", slime:slimeKey };
+
+  function fixPredicate(p, path) {
+    if (!isObj(p)) return p;
+    if ("type" in p && !("entity_type" in p)) {
+      p.entity_type = p.type;
+      delete p.type;
+      log("ent_type", path + ": type → entity_type");
+    }
+    if (isObj(p.type_specific)) {
+      const ts = p.type_specific, kind = strip(ts.type || "");
+      const mapped = tsMap[kind] || (kind ? "type_specific/" + kind : null);
+      if (mapped) {
+        const body = { ...ts };
+        delete body.type;
+        p["minecraft:" + mapped] = body;
+        delete p.type_specific;
+        log(kind === "slime" && cubeMob ? "slime" : "ts_comp",
+            path + ": type_specific (" + kind + ") → minecraft:" + mapped);
+        if (kind === "player" && isObj(body.looking_at)) fixPredicate(body.looking_at, path + ".looking_at");
+      } else {
+        log("manual", path + ": type_specific has no type field");
+      }
+    }
+    if (cubeMob) {
+      for (const k of Object.keys(p)) {
+        if (strip(k) === "type_specific/slime") {
+          const nk = k.replace(/slime$/, "cube_mob");
+          p[nk] = p[k];
+          delete p[k];
+          log("slime", path + ": " + k + " → " + nk);
+        }
+      }
+    }
+    for (const sub of ["vehicle","passenger","targeted_entity"])
+      if (isObj(p[sub])) fixPredicate(p[sub], path + "." + sub);
+    return p;
+  }
+
+  function walk(v, path) {
+    if (Array.isArray(v)) { v.forEach((c, i) => walk(c, path + "[" + i + "]")); return v; }
+    if (!isObj(v)) return v;
+    if ("condition" in v || (typeof v.type === "string" && isCondType(v.type))) {
+      if (isObj(v.predicate)) fixPredicate(v.predicate, path + ".predicate");
+      if (v.terms) walk(v.terms, path + ".terms");
+      if (v.term) walk(v.term, path + ".term");
+      return v;
+    }
+    return fixPredicate(v, path);
+  }
+
+  if (isObj(adv.criteria)) {
+    for (const [name, c] of Object.entries(adv.criteria)) {
+      if (!isObj(c) || !isObj(c.conditions)) continue;
+      const t = strip(c.trigger || ""), co = c.conditions;
+      for (const f of ["player", ...(entityFields[t] || [])])
+        if (f in co) walk(co[f], name + "." + f);
+      for (const f of (locationFields[t] || []))
+        if (Array.isArray(co[f])) walk(co[f], name + "." + f);
+    }
+  }
+  return adv;
+}
+
+// 26.3 Snapshot 4 trigger and predicate rework
+function apply263(adv, log) {
+  function fixCond(c, path) {
+    if (typeof c === "string" || !isObj(c)) return c;
+    if ("condition" in c) {
+      c.type = c.condition;
+      delete c.condition;
+      log("cond_type", path + ": condition → type");
+    }
+    const t = strip(c.type || "");
+    if (t === "block_state_property") {
+      c.type = "minecraft:match_block";
+      if ("block" in c) { c.blocks = c.block; delete c.block; }
+      if ("properties" in c) { c.state = c.properties; delete c.properties; }
+      log("match_block", path + ": block_state_property → match_block");
+    }
+    if ((t === "all_of" || t === "any_of") && Array.isArray(c.terms))
+      c.terms = c.terms.map((x, i) => fixCond(x, path + ".terms[" + i + "]"));
+    if (t === "inverted" && c.term !== undefined) c.term = fixCond(c.term, path + ".term");
+    if (t === "reference") {
+      log("reference", path + ": reference condition → plain predicate ID");
+      return c.name || c;
+    }
+    return c;
+  }
+
+  function fixField(v, path, isEntity) {
+    if (v === undefined || typeof v === "string") return v;
+    if (Array.isArray(v)) {
+      const terms = v.map((c, i) => fixCond(c, path + "[" + i + "]"));
+      if (terms.length === 1) {
+        log("list_allof", path + ": unwrapped single-condition list");
+        return terms[0];
+      }
+      log("list_allof", path + ": list wrapped in explicit all_of");
+      return { type: "minecraft:all_of", terms };
+    }
+    if (isObj(v)) {
+      if ("condition" in v || (typeof v.type === "string" && isCondType(v.type))) return fixCond(v, path);
+      if (Object.keys(v).length === 0) return v;
+      if (isEntity) {
+        log("pred_field", path + ": entity predicate wrapped in entity_properties");
+        return { type: "minecraft:entity_properties", entity: "this", predicate: v };
+      }
+      log("manual", path + ": unrecognized object left as-is");
+    }
+    return v;
+  }
+
+  if (isObj(adv.criteria)) {
+    for (const [name, c] of Object.entries(adv.criteria)) {
+      if (!isObj(c) || !isObj(c.conditions)) continue;
+      const t = strip(c.trigger || ""), co = c.conditions;
+
+      if ("player" in co && t !== "impossible") co.player = fixField(co.player, name + ".player", true);
+      for (const f of (entityFields[t] || [])) {
+        if (!(f in co)) continue;
+        if (f === "victims" && Array.isArray(co[f])) {
+          // channeled_lightning takes a list of separate entities, not an implicit all_of
+          co[f] = co[f].map((v, i) => fixField(v, name + ".victims[" + i + "]", true));
+          continue;
+        }
+        co[f] = fixField(co[f], name + "." + f, true);
+      }
+      for (const f of (locationFields[t] || []))
+        if (f in co) co[f] = fixField(co[f], name + "." + f, false);
+
+      if (blockRename.has(t) && "block" in co) {
+        co.blocks = co.block; delete co.block;
+        log("blocks", name + ": block → blocks");
+      }
+      if ((t === "recipe_crafted" || t === "crafter_recipe_crafted") && "recipe_id" in co) {
+        co.recipes = co.recipe_id; delete co.recipe_id;
+        log("recipes", name + ": recipe_id → recipes");
+      }
+      if (t === "recipe_unlocked" && "recipe" in co) {
+        co.recipes = co.recipe; delete co.recipe;
+        log("recipes", name + ": recipe → recipes");
+      }
+      if (t === "player_generates_container_loot" && "loot_table" in co) {
+        co.loot_tables = co.loot_table; delete co.loot_table;
+        log("loot_tables", name + ": loot_table → loot_tables");
+      }
+      if (t === "brewed_potion" && typeof co.potion === "string") {
+        co.potion = { potions: [co.potion] };
+        log("potion", name + ": potion ID → potion_contents predicate");
+      }
+    }
+  }
+  return adv;
+}
+
+// page stuff
+const input = document.getElementById("in");
+const output = document.getElementById("out");
+const errBox = document.getElementById("err");
+const sel = document.getElementById("tgt");
+
+versions.forEach((v, i) => {
+  const o = document.createElement("option");
+  o.value = i;
+  o.textContent = v[0] + "  (pack " + v[1][0] + "." + v[1][1] + ")";
+  sel.appendChild(o);
+});
+sel.value = versions.length - 1;
+
+function autosize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.max(el.scrollHeight + 4, 120) + "px";
+}
+input.addEventListener("input", () => {
+  autosize(input);
+  errBox.textContent = "";
+  if (input.value.trim()) {
+    try { JSON.parse(input.value); }
+    catch (e) { errBox.textContent = "Invalid JSON: " + e.message; }
+  }
+});
+
+document.getElementById("go").addEventListener("click", () => {
+  errBox.textContent = "";
+  let adv;
+  try { adv = JSON.parse(input.value); }
+  catch (e) { errBox.textContent = "Invalid JSON: " + e.message; return; }
+  if (!isObj(adv) || !isObj(adv.criteria) || !Object.keys(adv.criteria).length)
+    errBox.textContent = "Warning: no criteria object found. Is this an advancement file?";
+
+  const pack = versions[+sel.value][1];
+  const entries = [];
+  const log = (id, short) => entries.push({ id, short });
+
+  let result = clone(adv);
+  if (atLeast(pack, [102,0])) result = apply262(result, log, atLeast(pack, [103,0]));
+  if (atLeast(pack, [111,0])) result = apply263(result, log);
+
+  output.value = JSON.stringify(result, null, 2);
+  autosize(output);
+
+  const list = document.getElementById("changesList");
+  if (!entries.length) {
+    list.innerHTML = "<em>No changes needed, the file already fits the chosen version.</em>";
+  } else {
+    list.innerHTML = entries.map(e => {
+      const c = changeInfo[e.id];
+      return '<details class="' + (c.warn ? "warn" : "") + '">' +
+        '<summary><span class="ver">' + c.v + '</span>' + esc(e.short) + '</summary>' +
+        '<div class="body"><p>' + c.d + '</p>' +
+        '<p class="meta">Introduced in <b>' + c.v + '</b> (Data Pack version ' + c.p + ')</p>' +
+        '<p><a class="chlink" href="' + c.u + '" target="_blank" rel="noopener">Official changelog</a></p></div>' +
+        '</details>';
+    }).join("");
+  }
+  const tab = document.getElementById("changesTab");
+  tab.querySelector("summary").textContent = "Changes (" + entries.length + ")";
+  tab.open = entries.length > 0;
+});
+
+document.getElementById("copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(output.value); }
+  catch (e) { output.select(); document.execCommand("copy"); }
+  const b = document.getElementById("copy");
+  b.textContent = "Copied!";
+  setTimeout(() => b.textContent = "Copy", 1200);
+});
+
+document.getElementById("dl").addEventListener("click", () => {
+  const blob = new Blob([output.value], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "advancement.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>
