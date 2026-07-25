@@ -84,10 +84,12 @@
   <span class="splash" id="splash">Java 1.21.11!</span>
 
   <div class="tools">
-    <a class="btn big" href="particles.html">Particle Visualizer
+    <a class="btn big" href="particles.html">Particle Renderer
       <small>preview /particle commands in 3d</small></a>
     <a class="btn big" href="advancement-updater.html">Advancement Updater
       <small>migrate advancement json between versions</small></a>
+    <a class="btn big" href="loot-calculator.html">Loot Table Calculator
+      <small>real drop odds, weights and simulation</small></a>
   </div>
 
   <div class="bottomRow">
@@ -121,7 +123,7 @@
   <div style="margin-top:12px"><button id="stClose">Close</button></div>
 </div></div>
 <script>
-// old share links pointed at the site root back when the visualiser was the front
+// old share links pointed at the site root back when the renderer was the front
 // page, so forward anything with a hash instead of breaking them
 if(location.hash.length>1)location.replace("particles.html"+location.hash);
 
@@ -153,10 +155,7 @@ const UNIT_P=10000,UNIT_C=100;
 })();
 
 
-// ios safari ignores image-rendering:pixelated on background images, so it smooths
-// the 16px tile up to 64 and the smoothing bleeds past each tile edge, which is the
-// faint grid. upscale it ourselves with smoothing off and hand the browser a tile
-// it can place at native size
+
 const TEX_LIGHT="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png";
 const TEX_DARK="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png";
 const texCache={};
