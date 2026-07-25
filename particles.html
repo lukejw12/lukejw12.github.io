@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Particle Visualizer 1.21.11</title>
+<title>Particle Renderer 1.21.11</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
   @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
@@ -114,17 +114,25 @@
   html.dark .kofi{background:#1e7fa8}
   html.dark .kofi{border-color:#6fc3e0 #0a3a4e #0a3a4e #6fc3e0}
 
+  .iconBtn{padding:6px 9px;line-height:0}
+  .iconBtn svg{width:22px;height:22px}
+  .iconBtn .ic-sun{display:none}.iconBtn .ic-moon{display:block}
+  html.dark .iconBtn .ic-moon{display:none}html.dark .iconBtn .ic-sun{display:block}
+  html.dark .iconBtn svg{fill:currentColor}
+  .hdrBtns{margin-left:auto;display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
 <script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
 <div class="wrap">
   <header>
-    <h1>Particle Visualizer</h1>
+    <h1>Particle Renderer</h1>
     <span class="splash" id="splash">Java 1.21.11!</span>
     <span class="hint">drag to orbit, scroll to zoom, double click ground to move origin</span>
-    <a class="btn" href="index.html" style="margin-left:auto">&larr; Menu</a>
-    <button id="darkBtn">Dark</button>
+    <div class="hdrBtns">
+      <a class="btn" href="index.html">&larr; Menu</a>
+      <button id="darkBtn" class="iconBtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic-sun" viewBox="0 0 9 9" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="0" y="4" width="2" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="3" y="5" width="3" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/><rect x="4" y="8" width="1" height="1"/></svg><svg class="ic-moon" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="2" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="0" y="4" width="4" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="8" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/></svg></button>
+    </div>
   </header>
 
   <div class="viewport">
@@ -1462,10 +1470,6 @@ const SPLASH_RARE=["Not affiliated with Mojang!","No warranty!","May contain tra
   e.innerHTML=pool[Math.random()*pool.length|0];})();
 
 
-// ios safari ignores image-rendering:pixelated on background images, so it smooths
-// the 16px tile up to 64 and the smoothing bleeds past each tile edge, which is the
-// faint grid. upscale it ourselves with smoothing off and hand the browser a tile
-// it can place at native size
 const TEX_LIGHT="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png";
 const TEX_DARK="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png";
 const texCache={};
@@ -1489,7 +1493,6 @@ applyBg();
 // dark mode toggle, remembered across all three pages
 (()=>{const b=document.getElementById("darkBtn");if(!b)return;
   const set=on=>{document.documentElement.classList.toggle("dark",on);
-    b.textContent=on?"Light":"Dark";
     try{localStorage.setItem("pvDark",on?"1":"0");}catch(e){}
     if(typeof applyBg==="function")applyBg();};
   set(document.documentElement.classList.contains("dark"));
