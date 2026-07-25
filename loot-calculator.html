@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loot Table Calculator 1.21.11</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+  @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
+  *{box-sizing:border-box;image-rendering:pixelated}
+  body{margin:0;font-family:'MinecraftTTF','VT323',monospace;font-size:19px;color:#3f3f3f;
+    background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
+      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png");
+    background-size:100% 100%,64px 64px;background-repeat:no-repeat,repeat;
+    background-attachment:fixed,scroll;min-height:100vh;
+    image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;image-rendering:pixelated}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+  header h1{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
+  .splash{color:#fcfc54;text-shadow:2px 2px #3e3e14;transform:rotate(-4deg);display:inline-block;font-size:20px}
+  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
+  button,.btn{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;
+    text-shadow:2px 2px #3f3f3f;border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;
+    padding:6px 16px 4px;cursor:pointer;text-decoration:none;display:inline-block;line-height:1.15}
+  button:hover,.btn:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
+  button:active,.btn:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
+  button.primary{background:#6d9c50;border-color:#c8e8b0 #2b451c #2b451c #c8e8b0}
+  button.primary:hover{background:#7cb35a;color:#fff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  @media(max-width:560px){
+    .wrap{padding:10px}
+    .item{flex-wrap:wrap;gap:6px}
+    .iname{flex:1 1 100%;order:1}
+    .icon{order:0}
+    .pct{order:0;margin-left:auto}
+    .bar{flex:1 1 100%;order:2}
+    .avg{order:2;flex:0 0 auto}
+    .simItem{flex-wrap:wrap}
+    .simName{flex:1 1 100%}
+    .simBar{flex:1 1 70%}
+  }
+  .panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px}
+  .panel h2{margin:0 0 8px;font-size:22px;font-weight:normal;color:#1c1c1c}
+  textarea{width:100%;min-height:340px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'MinecraftTTF','VT323',monospace;font-size:16px;padding:8px 10px;resize:vertical;line-height:1.4}
+  textarea:focus,input:focus,select:focus{outline:none;border-color:#fff}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  label{color:#3f3f3f}
+  input[type=number],input[type=text]{background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'MinecraftTTF','VT323',monospace;font-size:16px;padding:3px 6px}
+  select{font-family:'MinecraftTTF','VT323',monospace;font-size:16px;background:#000;color:#e0e0e0;
+    border:2px solid #a0a0a0;padding:3px 6px}
+  #err{color:#fc5454;text-shadow:2px 2px rgba(0,0,0,.8);min-height:20px}
+  .pool{border:2px solid;border-color:#e8e8e8 #6b6b6b #6b6b6b #e8e8e8;background:#b8b8b8;
+    padding:8px 10px;margin-bottom:10px}
+  .poolHead{color:#1c1c1c;margin-bottom:6px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
+  .poolHead .sub{color:#4a4a4a;font-size:16px}
+  .poolHead .arrow{display:inline-block;transition:transform .1s;font-size:15px}
+  .pool.open .poolHead .arrow{transform:rotate(90deg)}
+  .poolBody{display:none}
+  .pool.open .poolBody{display:block}
+  .item{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid #a5a5a5}
+  .item:first-child{border-top:none}
+  .icon{width:32px;height:32px;flex:0 0 32px;image-rendering:pixelated;background:#0003}
+  .iname{flex:1 1 120px;color:#1c1c1c;word-break:break-word;font-size:17px}
+  .bar{flex:1 1 90px;height:16px;background:#000;border:1px solid #555;position:relative;min-width:70px}
+  .bar span{position:absolute;inset:0 auto 0 0;background:#6d9c50}
+  .pct{flex:0 0 96px;display:flex;align-items:center;gap:3px;justify-content:flex-end;color:#1c1c1c}
+  .pct input{width:60px;text-align:right}
+  html.dark .pct{color:#e6e9f0}
+  .avg{color:#3f3f3f;font-size:16px;flex:0 0 80px;text-align:right}
+  html.dark .avg{color:#aeb6c6}
+  .simItem{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid #a5a5a5}
+  .simItem:first-child{border-top:none}
+  html.dark .simItem{border-top-color:#3f4552}
+  .simName{flex:1 1 110px;color:#1c1c1c;word-break:break-word;font-size:16px}
+  html.dark .simName{color:#e6e9f0}
+  .simName small{color:#5a5a5a}
+  html.dark .simName small{color:#8b93a3}
+  .simBar{flex:1 1 80px;min-width:60px;height:16px;background:#000;border:1px solid #555;position:relative}
+  .simBar span{position:absolute;inset:0 auto 0 0;background:#6d9c50}
+  .simPct{flex:0 0 60px;text-align:right;color:#1c6b1c;font-size:16px}
+  html.dark .simPct{color:#7fdc7f}
+  .tag{display:inline-block;background:#000;color:#54fc54;padding:0 6px;font-size:15px;margin-left:6px}
+  .warnTag{background:#3a3320;color:#f0d060}
+  .item.emptyItem .iname{color:#6a6a6a}
+  html.dark .item.emptyItem .iname{color:#8b93a3}
+  code{font-family:'MinecraftTTF','VT323',monospace;background:#000;color:#54fc54;padding:0 4px}
+  .simRow{margin-top:10px;flex-direction:column;align-items:flex-start;gap:6px}
+  .simBtns{display:flex;gap:8px;flex-wrap:wrap}
+  .simBtns button{flex:0 0 auto}
+  .simOut{color:#1c1c1c;font-size:16px;margin-top:4px;line-height:1.5}
+  /* dark mode */
+  html.dark body{color:#d8dbe2;
+    background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),
+      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png")}
+  html.dark header h1{color:#fff;text-shadow:3px 3px #0c0e12}
+  html.dark .hint{color:#8b93a3;text-shadow:2px 2px #0c0e12}
+  html.dark .splash{color:#fcfc54;text-shadow:2px 2px #2a2a10}
+  html.dark button,html.dark .btn{background:#2f3648;color:#e6e9f0;text-shadow:2px 2px #0c0e12;
+    border-color:#5a6480 #10131a #10131a #5a6480}
+  html.dark button:hover,html.dark .btn:hover{background:#3d4a6b;color:#9ecbff;
+    border-color:#7f92c0 #141a26 #141a26 #7f92c0}
+  html.dark button.primary{background:#2f5da8;border-color:#7fa8e8 #10203a #10203a #7fa8e8}
+  html.dark .panel{background:#23262e;border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
+  html.dark .panel h2{color:#fff}
+  html.dark textarea,html.dark input,html.dark select,html.dark code{background:#0c0e12;color:#d8dbe2;border-color:#4a5162}
+  html.dark .pool{background:#1b1e25;border-color:#3f4552 #10131a #10131a #3f4552}
+  html.dark .poolHead,html.dark .iname,html.dark .pct,html.dark .avg,html.dark .simOut,html.dark label{color:#d8dbe2}
+  html.dark .poolHead .sub{color:#8b93a3}
+  html.dark .item{border-top-color:#3f4552}
+  html.dark .iconBtn svg{fill:currentColor}
+  .topRight{margin-left:auto;display:flex;gap:8px}
+  .iconBtn{padding:6px 9px;line-height:0}
+  .iconBtn svg{width:22px;height:22px}
+  .iconBtn .ic-sun{display:none}.iconBtn .ic-moon{display:block}
+  html.dark .iconBtn .ic-moon{display:none}html.dark .iconBtn .ic-sun{display:block}
+  .hdrBtns{margin-left:auto;display:flex;gap:8px;align-items:center}
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
+<div class="wrap">
+  <header>
+    <h1>Loot Table Calculator</h1>
+    <span class="splash" id="splash">Java 1.21.11!</span>
+    <span class="hint">real drop odds from a loot table</span>
+    <div class="hdrBtns">
+      <a class="btn" href="index.html">&larr; Menu</a>
+      <button id="darkBtn" class="iconBtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic-sun" viewBox="0 0 9 9" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="0" y="4" width="2" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="3" y="5" width="3" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/><rect x="4" y="8" width="1" height="1"/></svg><svg class="ic-moon" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="2" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="0" y="4" width="4" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="8" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/></svg></button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Loot table</h2>
+      <textarea id="json" spellcheck="false" placeholder="Paste a loot table file here"></textarea>
+      <div class="row">
+        <button id="calc" class="primary">Calculate</button>
+        <button id="copy">Copy JSON</button>
+      </div>
+      <div id="err"></div>
+      <p class="hint">Paste a loot table and Calculate. Edit any % on the right, then Convert to rewrite the weights so they match.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Chances</h2>
+      <div class="row">
+        <label>Luck <input type="number" id="luck" value="0" min="0" step="1" style="width:56px"></label>
+        <span class="hint">affects quality and bonus_rolls</span>
+      </div>
+      <div class="row">
+        <button id="convert">Convert weights to match %</button>
+        <span class="hint">rewrites weights so each item hits the % you typed</span>
+      </div>
+      <div id="results"></div>
+      <div class="row simRow">
+        <label>Simulate rolls</label>
+        <div class="simBtns">
+          <button class="rollBtn" data-n="10">10</button>
+          <button class="rollBtn" data-n="100">100</button>
+          <button class="rollBtn" data-n="1000">1000</button>
+          <button class="rollBtn" data-n="10000">10000</button>
+        </div>
+      </div>
+      <div class="simOut" id="simOut"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const ASSET="https://cdn.jsdelivr.net/gh/misode/mcmeta@assets/assets/minecraft/textures/";
+
+// dark toggle
+(()=>{const b=$("darkBtn");
+  const set=on=>{document.documentElement.classList.toggle("dark",on);
+    try{localStorage.setItem("pvDark",on?"1":"0");}catch(e){}};
+  set(document.documentElement.classList.contains("dark"));
+  b.onclick=()=>set(!document.documentElement.classList.contains("dark"));})();
+
+// 90% the two normal ones, 10% something themed, same as the other pages
+const SPLASH_MAIN=["Java 1.21.11!","Thanks for using this tool!"];
+const SPLASH_RARE=["Not affiliated with Mojang!","No warranty!","May contain traces of dirt!",
+  "No creepers in here!","Not a bug, it's a feature!","I see you","<s>Bug-Free!</s>","Leave a rating!"];
+(()=>{const e=$("splash");if(!e)return;
+  const pool=Math.random()<0.9?SPLASH_MAIN:SPLASH_RARE;
+  e.innerHTML=pool[Math.random()*pool.length|0];})();
+
+// pull a number out of a number provider (constant, {min,max}, uniform, binomial...)
+function numProvider(np,luck,dflt){
+  if(np==null)return dflt!=null?dflt:1;
+  if(typeof np==="number")return np;
+  if(typeof np==="object"){
+    if(np.type&&np.type.replace("minecraft:","")==="binomial")
+      return (numProvider(np.n,luck))*(numProvider(np.p,luck));
+    if("min"in np&&"max"in np)return (numProvider(np.min,luck)+numProvider(np.max,luck))/2;
+    if("value"in np)return numProvider(np.value,luck);
+  }
+  return 1;
+}
+
+// a condition's pass-chance. random_chance we can compute, everything else we treat as
+// always-on but flag it, since predicates depend on world state we don't have
+function condChance(c,luck,flags){
+  const t=(c.condition||c.type||"").replace("minecraft:","");
+  if(t==="random_chance")return numProvider(c.chance,luck);
+  if(t==="random_chance_with_enchanted_bonus"){
+    const base=numProvider(c.unenchanted_chance!=null?c.unenchanted_chance:c.chance,luck);
+    return base;
+  }
+  if(t==="inverted"&&c.term)return 1-condChance(c.term,luck,flags);
+  if(t==="all_of"&&c.terms)return c.terms.reduce((a,x)=>a*condChance(x,luck,flags),1);
+  if(t==="any_of"&&c.terms)return 1-c.terms.reduce((a,x)=>a*(1-condChance(x,luck,flags)),1);
+  flags.assumed=true; // condition we can't evaluate, assumed to pass
+  return 1;
+}
+function condList(list,luck,flags){
+  if(!list||!list.length)return 1;
+  return list.reduce((a,c)=>a*condChance(c,luck,flags),1);
+}
+
+// flatten composite entries (group/alternatives/sequence) into singletons with weights
+function expand(entry,luck,flags){
+  const t=(entry.type||"").replace("minecraft:","");
+  if(t==="group"&&entry.children)return entry.children.flatMap(e=>expand(e,luck,flags));
+  if(t==="sequence"&&entry.children)return entry.children.flatMap(e=>expand(e,luck,flags));
+  if(t==="alternatives"&&entry.children){
+    // first child whose conditions pass; approximate by weighting by pass-chance
+    const out=[];let remain=1;
+    for(const ch of entry.children){
+      const pc=condList(ch.conditions,luck,flags);
+      const kids=expand(ch,luck,flags);
+      const kw=kids.reduce((a,k)=>a+k._w,0)||1;
+      kids.forEach(k=>{k._w=k._w/kw*remain*pc;out.push(k);});
+      remain*=(1-pc);
+      if(remain<=0)break;
+    }
+    return out;
+  }
+  // singleton
+  const w=(entry.weight!=null?entry.weight:1)+(entry.quality||0)*luck;
+  return [{...entry,_w:Math.max(0,w)}];
+}
+
+let model=null; // parsed table with computed per-pool entries
+
+function build(luck){
+  let data;
+  try{data=JSON.parse($("json").value);}
+  catch(e){throw "Invalid JSON: "+e.message;}
+  const pools=data.pools||[];
+  if(!Array.isArray(pools))throw "No pools array found.";
+  const flags={assumed:false};
+  const out=pools.map((pool,pi)=>{
+    const rolls=numProvider(pool.rolls,luck,1)+numProvider(pool.bonus_rolls,luck,0)*luck;
+    const poolPass=condList(pool.conditions,luck,flags);
+    let entries=(pool.entries||[]).flatMap(e=>{
+      const flat=expand(e,luck,flags);
+      // apply each singleton's own conditions as a weight scaler
+      return flat.map(f=>{
+        const pc=condList(f.conditions,luck,flags);
+        return {...f,_w:f._w*pc};
+      });
+    });
+    const total=entries.reduce((a,e)=>a+e._w,0)||1;
+    entries.forEach(e=>{
+      e._perRoll=e._w/total;              // chance this entry wins one roll
+      e._chance=poolPass*(1-Math.pow(1-e._perRoll,Math.max(0,rolls))); // at least once across rolls
+      e._name=e.name||(e.type||"").replace("minecraft:","");
+      e._count=avgCount(e,luck);
+    });
+    return {rolls,poolPass,entries,total,raw:pool,index:pi};
+  });
+  model={data,pools:out,flags};
+  return model;
+}
+
+// average item count from set_count functions, else 1
+function avgCount(entry,luck){
+  const fns=entry.functions||[];
+  let c=1;
+  for(const f of fns){
+    const t=(f.function||"").replace("minecraft:","");
+    if(t==="set_count")c=numProvider(f.count,luck);
+  }
+  return c;
+}
+
+function itemIcon(name,isEmpty){
+  const id=isEmpty?"barrier":(name||"").replace("minecraft:","");
+  const img=document.createElement("img");
+  img.className="icon";img.alt=id;img.title=id;img.loading="lazy";
+  img.src=ASSET+"item/"+id+".png";
+  img.onerror=()=>{ if(img.dataset.tried)return; img.dataset.tried="1";
+    img.src=ASSET+"block/"+id+".png"; };
+  return img;
+}
+
+// remember which pools the user has opened so a recalc doesn't collapse them
+let openPools={};
+// target percents the user typed, keyed pool:index, applied on Convert
+let targetPct={};
+
+function render(){
+  const box=$("results");box.innerHTML="";
+  if(model.flags.assumed){
+    const n=document.createElement("div");n.className="hint";
+    n.style.marginBottom="8px";
+    n.innerHTML='Some conditions depend on world state (loot context, tools, entities) and are assumed to pass. Those chances are upper bounds.';
+    box.appendChild(n);
+  }
+  model.pools.forEach((p,pi)=>{
+    const d=document.createElement("div");d.className="pool"+(openPools[pi]?" open":"");
+    const rollTxt=p.rolls===Math.round(p.rolls)?p.rolls:p.rolls.toFixed(2);
+    const head=document.createElement("div");head.className="poolHead";
+    head.innerHTML='<span class="arrow">&#9654;</span>Pool '+(pi+1)+
+      '<span class="sub"> &middot; '+rollTxt+' roll'+(p.rolls===1?"":"s")+
+      (p.poolPass<1?' &middot; pool passes '+(p.poolPass*100).toFixed(1)+"%":"")+'</span>';
+    head.onclick=()=>{openPools[pi]=!openPools[pi];d.classList.toggle("open",openPools[pi]);};
+    d.appendChild(head);
+    const body=document.createElement("div");body.className="poolBody";
+    p.entries.forEach((e,ei)=>{
+      const isEmpty=(e.type||"").replace("minecraft:","")==="empty";
+      const row=document.createElement("div");row.className="item"+(isEmpty?" emptyItem":"");
+      row.appendChild(itemIcon(e._name,isEmpty));
+      const nm=document.createElement("span");nm.className="iname";
+      nm.textContent=isEmpty?"nothing":e._name.replace("minecraft:","");
+      if((e.type||"").replace("minecraft:","")==="loot_table")
+        nm.innerHTML+='<span class="tag">ref</span>';
+      row.appendChild(nm);
+      const bar=document.createElement("div");bar.className="bar";
+      const fill=document.createElement("span");fill.style.width=(e._chance*100).toFixed(1)+"%";
+      bar.appendChild(fill);row.appendChild(bar);
+      const avg=document.createElement("span");avg.className="avg";
+      avg.textContent=e._count!==1?("x"+ (e._count%1?e._count.toFixed(1):e._count)):"";
+      row.appendChild(avg);
+      // editable percent. blank shows the computed value; typing sets a target for Convert
+      const pct=document.createElement("div");pct.className="pct";
+      const pi_ei=pi+":"+ei;
+      const inp=document.createElement("input");inp.type="number";inp.min="0";inp.max="100";inp.step="0.1";
+      inp.value=targetPct[pi_ei]!=null?targetPct[pi_ei]:(e._chance*100).toFixed(2);
+      inp.title="target drop %";
+      inp.oninput=()=>{targetPct[pi_ei]=inp.value===""?null:+inp.value;};
+      pct.appendChild(inp);
+      const sign=document.createElement("span");sign.textContent="%";pct.appendChild(sign);
+      row.appendChild(pct);
+      body.appendChild(row);
+    });
+    d.appendChild(body);
+    box.appendChild(d);
+  });
+}
+
+// Convert: for each pool where the user typed target %s, solve new integer weights
+// so single-roll selection chance matches. entries left blank keep their ratio.
+function convertWeights(){
+  if(!model||!model.data){$("err").textContent="Calculate a table first.";return;}
+  const data=model.data;
+  (data.pools||[]).forEach((pool,pi)=>{
+    // singleton entries in display order (skip composites for this pool)
+    const singles=(pool.entries||[]).map((e,ei)=>({e,ei}))
+      .filter(o=>["group","alternatives","sequence"].indexOf((o.e.type||"").replace("minecraft:",""))<0);
+    // which of them did the user pin a target on?
+    const pinned=singles.map(o=>({...o,t:targetPct[pi+":"+o.ei]}))
+      .filter(o=>o.t!=null&&!isNaN(o.t));
+    if(!pinned.length)return;
+    const TOTAL=1000; // resolve to integer weights out of a fixed total
+    let used=0,pinnedSum=0;
+    pinned.forEach(o=>{pinnedSum+=Math.max(0,Math.min(100,o.t));});
+    if(pinnedSum>100)pinnedSum=100;
+    // assign pinned entries their share of the total
+    pinned.forEach(o=>{const w=Math.round(Math.max(0,Math.min(100,o.t))/100*TOTAL);
+      o.e.weight=w;used+=w;});
+    // distribute the rest across unpinned singletons, keeping their existing ratio
+    const rest=singles.filter(o=>targetPct[pi+":"+o.ei]==null);
+    const oldRestSum=rest.reduce((a,o)=>a+(o.e.weight!=null?o.e.weight:1),0)||1;
+    const remain=Math.max(0,TOTAL-used);
+    rest.forEach(o=>{const ow=o.e.weight!=null?o.e.weight:1;
+      o.e.weight=Math.max(0,Math.round(ow/oldRestSum*remain));});
+  });
+  $("json").value=JSON.stringify(data,null,2);
+  targetPct={};        // clear pins now that they're baked in
+  recalc();
+}
+
+function recalc(){
+  try{build(+$("luck").value||0);render();$("err").textContent="";}
+  catch(e){$("err").textContent=e;}
+}
+
+$("calc").onclick=()=>{targetPct={};recalc();};
+$("convert").onclick=convertWeights;
+$("luck").oninput=recalc;
+$("copy").onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($("json").value);};
+
+// simulate: actually roll the table n times and tally
+document.querySelectorAll(".rollBtn").forEach(b=>b.onclick=()=>{
+  let data;try{data=JSON.parse($("json").value);}catch(e){$("err").textContent="Fix the JSON first.";return;}
+  const n=+b.dataset.n,luck=+$("luck").value||0;
+  const seenIn={},qtyTotal={};let withLoot=0;
+  // each rollTable call = one container opened
+  for(let i=0;i<n;i++){
+    const stacks=rollTable(data,luck);           // {item: count} for this container
+    let any=false;
+    for(const k in stacks){seenIn[k]=(seenIn[k]||0)+1;qtyTotal[k]=(qtyTotal[k]||0)+stacks[k];any=true;}
+    if(any)withLoot++;
+  }
+  const keys=Object.keys(seenIn).sort((a,b)=>seenIn[b]-seenIn[a]);
+  const out=$("simOut");
+  if(!keys.length){out.innerHTML='<div class="hint">'+n+' containers, nothing dropped.</div>';return;}
+  const head=document.createElement("div");head.className="hint";
+  head.textContent=n+" containers · "+(withLoot/n*100).toFixed(1)+"% had loot";
+  out.innerHTML="";out.appendChild(head);
+  const maxSeen=Math.max(...keys.map(k=>seenIn[k]),1);
+  keys.forEach(k=>{
+    const isEmptyKey=k==="(nothing)";
+    const rowEl=document.createElement("div");rowEl.className="simItem";
+    rowEl.appendChild(itemIcon(k,isEmptyKey));
+    const nm=document.createElement("div");nm.className="simName";
+    const avgPer=qtyTotal[k]/n;                   // avg items per container across ALL containers
+    const avgWhenPresent=qtyTotal[k]/seenIn[k];   // avg count in containers that had it
+    nm.innerHTML=(isEmptyKey?"nothing":k.replace("minecraft:",""))+
+      ' <small>'+avgPer.toFixed(2)+' per container'+
+      (avgWhenPresent>1?' · '+avgWhenPresent.toFixed(1)+' when it drops':'')+'</small>';
+    rowEl.appendChild(nm);
+    const bar=document.createElement("div");bar.className="simBar";
+    const fill=document.createElement("span");fill.style.width=(seenIn[k]/maxSeen*100)+"%";
+    bar.appendChild(fill);rowEl.appendChild(bar);
+    const pc=document.createElement("div");pc.className="simPct";
+    pc.textContent=(seenIn[k]/n*100).toFixed(1)+"%";
+    rowEl.appendChild(pc);
+    out.appendChild(rowEl);
+  });
+});
+
+// roll the whole table once = one container. returns {itemId: totalCount}.
+// respects pool type: a "tiered"/sequential pool yields at most one entry per roll
+// (archaeology), a normal weighted pool can repeat items across its rolls (chest).
+function rollTable(data,luck){
+  const got={};
+  const add=(id,ct)=>{got[id]=(got[id]||0)+ct;};
+  for(const pool of (data.pools||[])){
+    if(!passRoll(pool.conditions,luck))continue;
+    let rolls=Math.round(numProvider(pool.rolls,luck,1)+numProvider(pool.bonus_rolls,luck,0)*luck);
+    for(let r=0;r<rolls;r++){
+      const entries=[];
+      for(const e of (pool.entries||[]))collectRollable(e,luck,entries);
+      const tot=entries.reduce((a,e)=>a+e._w,0);
+      if(tot<=0)continue;
+      let pick=Math.random()*tot;
+      for(const e of entries){pick-=e._w;if(pick<=0){
+        const t=(e.type||"").replace("minecraft:","");
+        if(t==="empty")add("(nothing)",1);
+        else if(t==="loot_table")add((e.value||e.name||"?ref")+" (ref)",1);
+        else add(e.name||"?",Math.max(0,Math.round(avgOrSampleCount(e,luck))));
+        break;
+      }}
+    }
+  }
+  return got;
+}
+// sample a set_count if present, else 1
+function avgOrSampleCount(entry,luck){
+  let c=1;
+  for(const f of (entry.functions||[])){
+    const t=(f.function||"").replace("minecraft:","");
+    if(t==="set_count"){const q=f.count;
+      if(typeof q==="number")c=q;
+      else if(q&&q.min!=null&&q.max!=null){const lo=numProvider(q.min,luck),hi=numProvider(q.max,luck);
+        c=Math.round(lo+Math.random()*(hi-lo));}
+      else c=numProvider(q,luck);}
+  }
+  return c;
+}
+function passRoll(list,luck){
+  if(!list)return true;
+  for(const c of list){
+    const t=(c.condition||c.type||"").replace("minecraft:","");
+    if(t==="random_chance"){if(Math.random()>=numProvider(c.chance,luck))return false;}
+    // other conditions assumed to pass
+  }
+  return true;
+}
+function collectRollable(entry,luck,out){
+  const t=(entry.type||"").replace("minecraft:","");
+  if(["group","sequence"].indexOf(t)>=0&&entry.children){entry.children.forEach(c=>collectRollable(c,luck,out));return;}
+  if(t==="alternatives"&&entry.children){
+    for(const c of entry.children){if(passRoll(c.conditions,luck)){collectRollable(c,luck,out);break;}}
+    return;
+  }
+  if(!passRoll(entry.conditions,luck))return;
+  const w=(entry.weight!=null?entry.weight:1)+(entry.quality||0)*luck;
+  out.push({...entry,_w:Math.max(0,w)});
+}
+// nothing loaded on start; user pastes their own table and hits Calculate
+</script>
+</body>
+</html>
