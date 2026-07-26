@@ -4,30 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Advancement Updater</title>
+<link rel="stylesheet" href="ui/style.css">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
   @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
   *{box-sizing:border-box;image-rendering:pixelated}
-  body{margin:0;font-family:'MinecraftTTF','VT323',monospace;font-size:19px;color:#3f3f3f;
-    background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
-      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png");
-    background-size:100% 100%,64px 64px;background-repeat:no-repeat,repeat;
-    background-attachment:fixed,scroll;min-height:100vh;
-    image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;image-rendering:pixelated}
   .wrap{max-width:900px;margin:0 auto;padding:16px}
-  header{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
-  header h1{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
-  .splash{color:#fcfc54;text-shadow:2px 2px #3e3e14;transform:rotate(-4deg);display:inline-block;font-size:20px}
-  .hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
-  button,.btn{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;
-    text-shadow:2px 2px #3f3f3f;border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;
-    padding:5px 16px 3px;cursor:pointer;text-decoration:none;display:inline-block}
-  button:hover,.btn:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
-  button:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
-  button.primary{background:#6d9c50;border-color:#c8e8b0 #2b451c #2b451c #c8e8b0}
-  button.primary:hover{background:#7cb35a;color:#fff}
-  .panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px}
-  label{color:#3f3f3f}
   textarea{width:100%;min-height:130px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
     font-family:'MinecraftTTF','VT323',monospace;font-size:18px;padding:8px 10px;resize:vertical;line-height:1.45}
   textarea:focus,select:focus{outline:none;border-color:#fff}
@@ -52,10 +34,10 @@
   .note a{color:#54fc54}
   .meta{margin:8px 0 6px;color:#4a4a4a}
   .chlink{display:inline-block;background:#8b8b8b;color:#fff;text-shadow:2px 2px #3f3f3f;
-    border:2px solid;border-color:#ddd #2f2f2f #2f2f2f #ddd;padding:3px 12px 1px;
+    border:2px solid #1a1a1a;box-shadow:inset 2px 2px 0 #ddd, inset -2px -2px 0 #5a5a5a;padding:3px 12px 1px;
     text-decoration:none;font-size:17px}
-  .chlink:hover{background:#8a95c4;border-color:#e8ecff #23273f #23273f #e8ecff;color:#fcfc9c}
-  .chlink:active{border-color:#2f2f2f #ddd #ddd #2f2f2f}
+  .chlink:hover{background:#8a95c4;box-shadow:inset 2px 2px 0 #e8ecff, inset -2px -2px 0 #3a4570;color:#fcfc9c}
+  .chlink:active{box-shadow:inset -2px -2px 0 #ddd, inset 2px 2px 0 #5a5a5a}
   @media(max-width:700px){
     .wrap{padding:8px}
     .row{gap:8px}
@@ -66,19 +48,7 @@
   }
 
   /* dark mode. deepslate instead of dirt, blue/black buttons, light text */
-  html.dark body{color:#d8dbe2;
-    background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),
-      url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png")}
   html.dark header h1,html.dark .menu h1{color:#fff;text-shadow:3px 3px #0c0e12}
-  html.dark .hint{color:#8b93a3;text-shadow:2px 2px #0c0e12}
-  html.dark .splash{color:#fcfc54;text-shadow:2px 2px #2a2a10}
-  html.dark button,html.dark .btn{background:#2f3648;color:#e6e9f0;text-shadow:2px 2px #0c0e12;
-    border-color:#5a6480 #10131a #10131a #5a6480}
-  html.dark button:hover,html.dark .btn:hover{background:#3d4a6b;color:#9ecbff;
-    border-color:#7f92c0 #141a26 #141a26 #7f92c0}
-  html.dark button:active,html.dark .btn:active{border-color:#10131a #5a6480 #5a6480 #10131a}
-  html.dark button.primary{background:#2f5da8;border-color:#7fa8e8 #10203a #10203a #7fa8e8}
-  html.dark button.primary:hover{background:#3d72c8;color:#fff}
   html.dark .panel,html.dark .controls,html.dark #statsPanel .box{background:#23262e;
     border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
   html.dark .tab{background:#1b1e25;color:#8b93a3;border-color:#3f4552 #10131a #10131a #3f4552}
@@ -107,16 +77,12 @@
   html.dark .kofi{background:#1e7fa8}
   html.dark .kofi{border-color:#6fc3e0 #0a3a4e #0a3a4e #6fc3e0}
 
-  .iconBtn{padding:6px 9px;line-height:0}
-  .iconBtn svg{width:22px;height:22px}
-  .iconBtn .ic-sun{display:none}.iconBtn .ic-moon{display:block}
-  html.dark .iconBtn .ic-moon{display:none}html.dark .iconBtn .ic-sun{display:block}
-  html.dark .iconBtn svg{fill:currentColor}
-  .hdrBtns{margin-left:auto;display:flex;gap:8px;align-items:center}
 </style>
 </head>
 <body>
 <script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
+<script src="ui/quotes.js"></script>
+<script src="ui/common.js" defer></script>
 <div class="wrap">
   <header>
     <h1>Advancement Updater</h1>
@@ -150,15 +116,8 @@
 
 </div>
 <script>
-// 90% of the time it's one of the two normal ones, 10% something dumb
-const SPLASH_MAIN=["Java 1.21.11!","Thanks for using this tool!"];
-const SPLASH_RARE=["Not affiliated with Mojang!","No warranty!","May contain traces of dirt!",
-  "No creepers in here!","Not a bug, it's a feature!","I see you","<s>Bug-Free!</s>","Leave a rating!"];
-(()=>{const e=document.getElementById("splash");if(!e)return;
-  const pool=Math.random()<0.9?SPLASH_MAIN:SPLASH_RARE;
-  e.innerHTML=pool[Math.random()*pool.length|0];})();
 
-// no server here, so global numbers live on counterapi. personal stuff stays local
+// no backend so the global numbers live on counterapi, ur own stuff stays local
 const STAT_NS="particle-visualizer-lukejw12";
 const CAPI="https://api.counterapi.dev/v1/"+STAT_NS+"/";
 const capiUp=k=>fetch(CAPI+k+"/up").then(r=>r.json()).then(j=>j.count).catch(()=>null);
@@ -169,51 +128,25 @@ const store={
 };
 const UNIT_P=10000,UNIT_C=100;
 (()=>{ // one visit per browser per day. counting per page load meant hopping
-  // between the three pages counted three times, and a new tab counted again
+  // hoppin between the pages was countin 3 times, and a new tab counted again
   const st=store.get(),today=new Date().toISOString().slice(0,10);
   if(st.lastVisit===today)return;
   st.lastVisit=today;st.visits=(st.visits||0)+1;store.set(st);
-  // only count globally if that actually saved, otherwise every load would count
+  // only bump the global one if it actually saved, else every single load counts
   if(store.get().lastVisit===today)capiUp("visits");
 })();
 
-// count a conversion only when the input is actually valid json
+// only count it as a conversion if the json actually parses
 document.getElementById("go").addEventListener("click",()=>{
   try{JSON.parse(document.getElementById("in").value);capiUp("advancements");}catch(e){}
 });
 
-const TEX_LIGHT="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png";
-const TEX_DARK="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png";
-const texCache={};
-function applyBg(){
-  const dark=document.documentElement.classList.contains("dark");
-  const url=dark?TEX_DARK:TEX_LIGHT, shade=dark?".55":".62";
-  const paint=data=>{document.body.style.backgroundImage=
-    "linear-gradient(rgba(0,0,0,"+shade+"),rgba(0,0,0,"+shade+")),url("+data+")";};
-  if(texCache[url])return paint(texCache[url]);
-  const im=new Image();im.crossOrigin="anonymous";
-  im.onload=()=>{
-    const c=document.createElement("canvas");c.width=c.height=64;
-    const x=c.getContext("2d");x.imageSmoothingEnabled=false;
-    x.drawImage(im,0,0,64,64);
-    try{texCache[url]=c.toDataURL();paint(texCache[url]);}catch(e){}
-  };
-  im.src=url;
-}
-applyBg();
 
-// dark mode toggle, remembered across all three pages
-(()=>{const b=document.getElementById("darkBtn");if(!b)return;
-  const set=on=>{document.documentElement.classList.toggle("dark",on);
-    try{localStorage.setItem("pvDark",on?"1":"0");}catch(e){}
-    if(typeof applyBg==="function")applyBg();};
-  set(document.documentElement.classList.contains("dark"));
-  b.onclick=()=>set(!document.documentElement.classList.contains("dark"));})();
 
 </script>
 <script>
-// Versions and their data pack formats, from the wiki's pack format table.
-// The format tuple is what decides which migrations get applied.
+// the versions and their pack formats, pulled from the wikis pack format table.
+// the format numbers are what decides which changes actually get applied
 const versions = [
   ["1.21.11", [94,1]],
   ["26.1 Snapshot 1", [95,0]], ["26.1 Snapshot 2", [96,0]], ["26.1 Snapshot 3", [97,0]],
@@ -275,7 +208,7 @@ const conditionTypes = new Set(["entity_properties","all_of","any_of","inverted"
   "stopwatch","environment_attribute_check"]);
 const isCondType = v => typeof v === "string" && conditionTypes.has(strip(v));
 
-// which trigger fields hold entity predicates / condition lists
+// which trigger fields hold entity predicates or lists of conditions
 const entityFields = {
   bred_animals: ["child","parent","partner"], cured_zombie_villager: ["villager","zombie"],
   effects_changed: ["source"], fall_after_explosion: ["cause"], fishing_rod_hooked: ["entity"],
@@ -293,7 +226,7 @@ const locationFields = {
 };
 const blockRename = new Set(["enter_block","bee_nest_destroyed","slide_down_block"]);
 
-// 26.2 Snapshot 3 entity predicate rework (slime becomes cube_mob one snapshot later)
+// 26.2 snapshot 3 reworked entity predicates (slime turns into cube_mob a snapshot later)
 function apply262(adv, log, cubeMob) {
   const slimeKey = cubeMob ? "type_specific/cube_mob" : "type_specific/slime";
   const tsMap = { lightning:"type_specific/lightning", fishing_hook:"type_specific/fishing_hook",
@@ -361,7 +294,7 @@ function apply262(adv, log, cubeMob) {
   return adv;
 }
 
-// 26.3 Snapshot 4 trigger and predicate rework
+// 26.3 snapshot 4 reworked the triggers and predicates
 function apply263(adv, log) {
   function fixCond(c, path) {
     if (typeof c === "string" || !isObj(c)) return c;
@@ -419,7 +352,7 @@ function apply263(adv, log) {
       for (const f of (entityFields[t] || [])) {
         if (!(f in co)) continue;
         if (f === "victims" && Array.isArray(co[f])) {
-          // channeled_lightning takes a list of separate entities, not an implicit all_of
+          // channeled_lightning wants a list of separate entities now, not a sneaky all_of
           co[f] = co[f].map((v, i) => fixField(v, name + ".victims[" + i + "]", true));
           continue;
         }
@@ -453,7 +386,7 @@ function apply263(adv, log) {
   return adv;
 }
 
-// page stuff
+// the actual page stuff
 const input = document.getElementById("in");
 const output = document.getElementById("out");
 const errBox = document.getElementById("err");
