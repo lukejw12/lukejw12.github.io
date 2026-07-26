@@ -33,7 +33,7 @@
   .flipRow{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
   .pageNum{color:#a0a0a0;min-width:90px;text-align:center}
   html.dark .pageNum{color:#8b93a3}
-  /* canvas fills its box; sharpness handled via device pixel ratio in JS */
+  
   #render{image-rendering:pixelated;max-width:100%;height:auto;display:block}
   .out{margin-top:14px}
   .out textarea{width:100%;min-height:80px;background:#000;border:2px solid #a0a0a0;color:#54fc54;
@@ -59,7 +59,7 @@
     </div>
   </header>
 
-  <!-- pick what surface you're writing on -->
+  
   <div class="modes">
     <button class="btn modeBtn primary" data-mode="text">Text</button>
     <button class="btn modeBtn" data-mode="book">Book</button>
@@ -117,7 +117,7 @@ const ASSET_FB="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/mi
 const W={' ':4,'!':2,'"':5,"'":3,'(':5,')':5,'*':5,',':2,'.':2,':':2,';':2,'<':5,'>':5,
   '@':7,'I':4,'[':4,']':4,'`':3,'f':5,'i':2,'k':5,'l':3,'t':4,'{':5,'|':2,'}':5,'~':7};
 function charW(c){ return W[c]!=null?W[c]:6; }
-// bold adds 1px to every character
+// bold adds 1px to every glyph
 function textWidth(str,bold){ let w=0; for(const c of str)w+=charW(c)+(bold?1:0); return w; }
 
 // the 16 vanilla colors (name -> hex, and the § code)
@@ -132,16 +132,16 @@ let mode="text";
 let curColor="white";
 const active={bold:false,italic:false,underline:false,strikethrough:false,obfuscated:false};
 
-// book: pages of raw text (with § codes typed inline)
+
 let bookPages=[""];
 let curPage=0;
 // sign: front + back, 4 lines each
 let signFaces={front:"",back:""};
 let signSide="front";
 let signType="standing"; // or "hanging"
-let signGlow=false;      // glowing text
+let signGlow=false;      // glowing text (glow ink sac)
 
-// limits
+
 const BOOK_W=114, BOOK_LINES=14, BOOK_MAXPAGE=100;
 const SIGN_W=90, SIGN_LINES=4;
 
@@ -161,7 +161,7 @@ COLORS.forEach(([name,hexv])=>{
 });
 // the color wheel picks any color
 $("colorWheel").oninput=()=>setColor($("colorWheel").value.toUpperCase());
-// the text box takes #hex OR a decimal
+// the text box takes #hex OR a decimal like 16711680
 $("colorApply").onclick=()=>{
   let v=$("colorText").value.trim();
   if(/^\d+$/.test(v)){ v="#"+(parseInt(v,10)&0xFFFFFF).toString(16).padStart(6,"0"); }
@@ -170,7 +170,7 @@ $("colorApply").onclick=()=>{
 };
 $("colorText").addEventListener("keydown",e=>{if(e.key==="Enter")$("colorApply").click();});
 
-// ---- format buttons toggle a style on the current selection ----
+ ----
 function fmtBtn(id,key){
   $(id).onclick=()=>{ active[key]=!active[key]; $(id).classList.toggle("on",active[key]);
     wrapSelection(key,active[key]); };
@@ -270,7 +270,7 @@ function reflowBook(){
   buildFlipRow();
 }
 
-
+// ---- word-wrap a string to a pixel width, returns array of lines ----
 function wrapToWidth(str,maxW,bold){
   const out=[]; 
   for(const para of str.split("\n")){
@@ -293,7 +293,6 @@ function wrapToWidth(str,maxW,bold){
 }
 
 
-// scale is in device pixels. font drawn crisp, with the mc drop shadow
 function drawLines(ctx,lines,x,y,px,color,styles,noShadow){
   ctx.textBaseline="top";
   ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+px+"px 'MinecraftTTF','VT323',monospace";
@@ -311,13 +310,12 @@ function drawLines(ctx,lines,x,y,px,color,styles,noShadow){
     if(styles.strikethrough){ctx.fillRect(x,ly+px*0.5,w,Math.max(1,px/10));}
   });
 }
-// obfuscated text scrambles into random same-width-ish glyphs. we swap each visible
-// char for a random one so the preview shimmers like the game does
+
 const OBFCHARS="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 function obfuscate(s){ let o=""; for(const c of s)o+= c===" "?" ":OBFCHARS[Math.random()*OBFCHARS.length|0]; return o; }
 let obfTimer=null;
 
-// textures for book / sign backdrops
+
 const bookTexCache={};
 function loadTex(path,cb){
   if(bookTexCache[path])return cb(bookTexCache[path]);
@@ -329,15 +327,15 @@ function loadTex(path,cb){
 
 const hex=name=>{ if(name&&name[0]==="#")return name; const c=COLORS.find(c=>c[0]===name);return c?c[1]:"#FFFFFF";};
 
-// from the decompiled AbstractSignRenderer.getDarkColor: (for future luke, this is the renderclass from mc decompiled)
-// non-glowing sign text is drawn at 40% brightness. black+glowing is a special cream.
+// from the decompiled AbstractSignRenderer.getDarkColor: (MC render class)
+// non-glowing sign text is drawn at 40% brightness. 
 // glowing text uses the FULL color plus an outline at full brightness.
 function darken(hexColor,f){
   const n=parseInt(hexColor.slice(1),16);
   const r=Math.floor(((n>>16)&0xFF)*f), g=Math.floor(((n>>8)&0xFF)*f), b=Math.floor((n&0xFF)*f);
   return "#"+[r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("");
 }
-// draw one line of sign text with the real glow/dark behavior
+// draw one line of sign text with the glow/dark behavior
 function drawSignLine(ctx,text,cx,y,fs,fullColor,glow,styles){
   ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
   const shown=styles.obfuscated?obfuscate(text):text;
@@ -351,7 +349,8 @@ function drawSignLine(ctx,text,cx,y,fs,fullColor,glow,styles){
     if(styles.strikethrough)ctx.fillRect(lx,y-fs*0.02,tw,thick);
   };
   if(glow){
- of the
+    // full-bright color with a chunky outline, like the emissive glow text.
+    
     const isBlack=fullColor.toUpperCase()==="#000000";
     const outline=isBlack?"#F0EBCC":darken(fullColor,0.4);
     const o=Math.max(2,Math.round(fs/9));
@@ -386,7 +385,7 @@ function render(){
   const cv=$("render");
   const color=hex(curColor);
   $("warn").textContent="";
-
+  // the stage is fluid; base the canvas on its available width (capped)
   const stageW=Math.min(($("stage").clientWidth||360)-32,360);
 
   if(mode==="text"){
@@ -410,13 +409,12 @@ function render(){
         bw=146*s;bh=180*s;bx=(w-bw)/2;by=(h-bh)/2;
         ctx.drawImage(img,20,1,146,180,bx,by,bw,bh);
       }
-      // the writable page area sits in the right ~62% of the book art, inset a bit
+      
       const px=bx+bw*0.20, py=by+bh*0.10, pw=bw*0.62;
       const page=bookPages[curPage];
       const scale=pw/BOOK_W; // one "book pixel" = this many screen px
       const lines=wrapToWidth(page,BOOK_W,active.bold).slice(0,BOOK_LINES);
-      // books render text dark (no shadow, flat on the page). white/default shows as
-      // the book's dark ink; colored text keeps its hue but stays readable on cream
+
       const inkColor=color==="#FFFFFF"?"#3f3f3f":color;
       drawLines(ctx,lines,px,py,9*scale,inkColor,active,true);
       const all=wrapToWidth(page,BOOK_W,active.bold);
@@ -446,7 +444,9 @@ function render(){
       // wrap the raw text to the sign width, then keep the first 4 lines
       const allLines=wrapToWidth(signFaces[signSide],SIGN_W,active.bold);
       const faceLines=allLines.slice(0,SIGN_LINES);
-
+      // signs render 4 lines at a fixed line height, centered vertically on the board.
+      // the source does y = i*lineHeight - (4*lineHeight/2), i.e. centered. so we
+      // center the 4-line block in the board and space evenly
       const lineH=bh/4.6;              // a touch of padding top/bottom
       const fs=lineH*0.82;
       const blockH=lineH*4;
@@ -467,9 +467,10 @@ function render(){
   if(active.obfuscated&&!obfTimer){ obfTimer=setInterval(()=>{ if(active.obfuscated)render(); else {clearInterval(obfTimer);obfTimer=null;} },120); }
 }
 
+
 function styleObj(text){
   const o={text:text};
-
+  // named colors go as their name, custom ones as the #hex string (mc accepts both)
   if(curColor!=="white")o.color=curColor;
   for(const k of ["bold","italic","underline","strikethrough","obfuscated"])if(active[k])o[k]=true;
   return o;
@@ -481,7 +482,7 @@ function buildTextOutput(raw){
   $("outHint").textContent="a /tellraw with your styled text";
 }
 function buildBookOutput(){
-  
+
   const pages=bookPages.map(p=>JSON.stringify(styleObj(p)));
   const nbt='written_book_content={pages:['+pages.map(p=>"'"+p.replace(/'/g,"\\'")+"'").join(",")+
     "],title:\"My Book\",author:\"me\"}";
@@ -504,7 +505,6 @@ function buildSignOutput(){
 
 $("copyBtn").onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($("output").value);};
 
-// go
 // re-render on resize so the canvas stays sharp and fits
 let rT; addEventListener("resize",()=>{clearTimeout(rT);rT=setTimeout(render,120);});
 setColor("white");
