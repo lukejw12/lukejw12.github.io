@@ -1,0 +1,64 @@
+/* the shared look for every page. the font and textures sit one folder up from here
+   so thats why the paths have ../ in front */
+
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@font-face{font-family:'MinecraftTTF';src:url('../minecraft.ttf');font-display:swap}
+
+*{box-sizing:border-box;image-rendering:pixelated}
+
+body{margin:0;font-family:'MinecraftTTF','VT323',monospace;font-size:19px;color:#3f3f3f;
+  background-image:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.62)),
+    url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/dirt.png");
+  background-size:100% 100%,64px 64px;background-repeat:no-repeat,repeat;
+  background-attachment:fixed,scroll;min-height:100vh;
+  image-rendering:-moz-crisp-edges;image-rendering:crisp-edges;image-rendering:pixelated}
+
+/* text sizes, use these so every page stays the same. .title is the big heading,
+   .caption is the little grey line under it, .desc is normal body text */
+.title{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
+.caption{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
+.desc{font-size:19px;color:inherit}
+.splash{color:#fcfc54;text-shadow:2px 2px #3e3e14;transform:rotate(-4deg);display:inline-block;font-size:20px}
+.hint{color:#a0a0a0;text-shadow:2px 2px #282828;font-size:17px}
+
+header{display:flex;align-items:baseline;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+header h1{font-size:32px;margin:0;color:#fff;text-shadow:3px 3px #3f3f3f;font-weight:normal}
+.hdrBtns{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* buttons. a page just sets whats inside, the rest is here. the dark border on all
+   4 sides is what keeps the corners square like actual mc buttons instead of doing
+   that diagonal slant, and the inset shadows fake the light/dark bevel */
+button,.btn{font-family:'MinecraftTTF','VT323',monospace;font-size:19px;background:#8b8b8b;color:#fff;
+  text-shadow:2px 2px #3f3f3f;border:2px solid #1a1a1a;
+  box-shadow:inset 2px 2px 0 #ddd, inset -2px -2px 0 #5a5a5a;
+  padding:6px 16px 4px;cursor:pointer;text-decoration:none;display:inline-block;
+  line-height:1.15;vertical-align:middle}
+button:hover,.btn:hover{background:#8a95c4;box-shadow:inset 2px 2px 0 #e8ecff, inset -2px -2px 0 #3a4570;color:#fcfc9c}
+button:active,.btn:active{box-shadow:inset -2px -2px 0 #ddd, inset 2px 2px 0 #5a5a5a}
+button.primary{background:#6d9c50;box-shadow:inset 2px 2px 0 #c8e8b0, inset -2px -2px 0 #2b451c}
+button.primary:hover{background:#7cb35a;color:#fff;box-shadow:inset 2px 2px 0 #d8f0c0, inset -2px -2px 0 #35521f}
+
+/* the sun/moon dark mode button */
+.iconBtn{padding:6px 9px;line-height:0}
+.iconBtn svg{width:22px;height:22px}
+.iconBtn .ic-sun{display:none}.iconBtn .ic-moon{display:block}
+html.dark .iconBtn .ic-moon{display:none}html.dark .iconBtn .ic-sun{display:block}
+html.dark .iconBtn svg{fill:currentColor}
+
+.panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px}
+label{color:#3f3f3f}
+
+/* dark mode, swaps the dirt for deepslate, buttons go blue/black, text goes light */
+html.dark body{color:#d8dbe2;
+  background-image:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.55)),url("https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/block/deepslate.png")}
+html.dark .title,html.dark header h1{color:#fff;text-shadow:3px 3px #0c0e12}
+html.dark .caption,html.dark .hint{color:#8b93a3;text-shadow:2px 2px #0c0e12}
+html.dark .splash{color:#fcfc54;text-shadow:2px 2px #2a2a10}
+html.dark button,html.dark .btn{background:#2f3648;color:#e6e9f0;text-shadow:2px 2px #0c0e12;
+  border-color:#0a0c10;box-shadow:inset 2px 2px 0 #5a6480, inset -2px -2px 0 #191d28}
+html.dark button:hover,html.dark .btn:hover{background:#3d4a6b;color:#9ecbff;
+  box-shadow:inset 2px 2px 0 #7f92c0, inset -2px -2px 0 #202838}
+html.dark button:active,html.dark .btn:active{box-shadow:inset -2px -2px 0 #5a6480, inset 2px 2px 0 #191d28}
+html.dark button.primary{background:#2f5da8;box-shadow:inset 2px 2px 0 #7fa8e8, inset -2px -2px 0 #12233c}
+html.dark .panel{background:#23262e;border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
+html.dark label{color:#c3c8d4}
