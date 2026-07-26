@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Display 1.21.11</title>
+<link rel="stylesheet" href="ui/style.css">
+<style>
+  .wrap{max-width:900px;margin:0 auto;padding:14px 18px 40px}
+  /* canvas mode picker */
+  .modes{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  /* the editor + preview split */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.split{grid-template-columns:1fr}}
+  .editArea{width:100%;min-height:180px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
+    font-family:'MinecraftTTF','VT323',monospace;font-size:17px;padding:8px 10px;resize:vertical;line-height:1.4}
+  .editArea:focus{outline:none;border-color:#fff}
+  /* format toolbar */
+  .fmtbar{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+  .fmtbar button{padding:3px 9px;font-size:17px}
+  .fmtbar button.on{background:#6d9c50;box-shadow:inset 2px 2px 0 #c8e8b0, inset -2px -2px 0 #2b451c}
+  .swatch{width:22px;height:22px;border:2px solid #1a1a1a;cursor:pointer;padding:0}
+  .colors{display:flex;gap:3px;flex-wrap:wrap;margin:6px 0}
+  /* preview stage */
+  .stage{background:#1a1a1a;border:3px solid;border-color:#555 #111 #111 #555;
+    display:flex;align-items:center;justify-content:center;padding:20px;min-height:300px;position:relative}
+  html.dark .stage{background:#0c0e12}
+  .flipRow{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}
+  .pageNum{color:#a0a0a0;min-width:90px;text-align:center}
+  html.dark .pageNum{color:#8b93a3}
+  /* the rendered text canvas gets crisp scaling */
+  #render{image-rendering:pixelated}
+  .out{margin-top:14px}
+  .out textarea{width:100%;min-height:80px;background:#000;border:2px solid #a0a0a0;color:#54fc54;
+    font-family:'MinecraftTTF','VT323',monospace;font-size:15px;padding:8px;line-height:1.4}
+  .warn{color:#fcae54;font-size:16px;min-height:20px}
+  html.dark .warn{color:#f0c060}
+  .sub{color:#a0a0a0;font-size:16px}
+  html.dark .sub{color:#8b93a3}
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
+<script src="ui/quotes.js"></script>
+<script src="ui/common.js" defer></script>
+<div class="wrap">
+  <header>
+    <h1>Text Display</h1>
+    <span class="splash" id="splash">Java 1.21.11!</span>
+    <span class="hint">preview text, books and signs with the real font</span>
+    <div class="hdrBtns">
+      <a class="btn" href="index.html">&larr; Menu</a>
+      <button id="darkBtn" class="iconBtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic-sun" viewBox="0 0 9 9" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="0" y="4" width="1" height="1"/><rect x="8" y="4" width="1" height="1"/><rect x="3" y="5" width="3" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/><rect x="4" y="8" width="1" height="1"/></svg><svg class="ic-moon" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="2" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="0" y="4" width="4" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="8" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/></svg></button>
+    </div>
+  </header>
+
+  <!-- pick what surface you're writing on -->
+  <div class="modes">
+    <button class="btn modeBtn primary" data-mode="text">Text</button>
+    <button class="btn modeBtn" data-mode="book">Book</button>
+    <button class="btn modeBtn" data-mode="sign">Sign</button>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="panel">
+        <label id="editLabel">Text</label>
+        <div class="fmtbar">
+          <button id="fBold" title="bold"><b>B</b></button>
+          <button id="fItalic" title="italic"><i>I</i></button>
+          <button id="fUnder" title="underline"><u>U</u></button>
+          <button id="fStrike" title="strikethrough"><s>S</s></button>
+          <button id="fObf" title="obfuscated">?</button>
+          <button id="fClear" title="reset formatting">reset</button>
+        </div>
+        <div class="colors" id="colors"></div>
+        <textarea id="editor" class="editArea" spellcheck="false" placeholder="type here, use the buttons above to style the selection"></textarea>
+        <p class="sub" id="pageControls" style="display:none"></p>
+      </div>
+    </div>
+    <div>
+      <div class="stage" id="stage">
+        <canvas id="render" width="256" height="256"></canvas>
+      </div>
+      <div class="flipRow" id="flipRow" style="display:none"></div>
+      <p class="warn" id="warn"></p>
+    </div>
+  </div>
+
+  <div class="out">
+    <label>Output</label>
+    <textarea id="output" readonly spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="copyBtn" class="primary">Copy</button>
+      <span class="sub" id="outHint"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const ASSET="https://cdn.jsdelivr.net/gh/misode/mcmeta@assets/assets/minecraft/textures/";
+const ASSET_FB="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/";
+
+// real java default-font character widths, in pixels (glyph + the 1px trailing space).
+// verified against the game: most letters are 6, these are the exceptions
+const W={' ':4,'!':2,'"':5,"'":3,'(':5,')':5,'*':5,',':2,'.':2,':':2,';':2,'<':5,'>':5,
+  '@':7,'I':4,'[':4,']':4,'`':3,'f':5,'i':2,'k':5,'l':3,'t':4,'{':5,'|':2,'}':5,'~':7};
+function charW(c){ return W[c]!=null?W[c]:6; }
+// bold adds 1px to every glyph
+function textWidth(str,bold){ let w=0; for(const c of str)w+=charW(c)+(bold?1:0); return w; }
+
+// the 16 vanilla colors (name -> hex, and the § code)
+const COLORS=[
+  ["black","#000000","0"],["dark_blue","#0000AA","1"],["dark_green","#00AA00","2"],
+  ["dark_aqua","#00AAAA","3"],["dark_red","#AA0000","4"],["dark_purple","#AA00AA","5"],
+  ["gold","#FFAA00","6"],["gray","#AAAAAA","7"],["dark_gray","#555555","8"],
+  ["blue","#5555FF","9"],["green","#55FF55","a"],["aqua","#55FFFF","b"],
+  ["red","#FF5555","c"],["light_purple","#FF55FF","d"],["yellow","#FFFF55","e"],["white","#FFFFFF","f"]];
+
+let mode="text";
+let curColor="white";
+const active={bold:false,italic:false,underline:false,strikethrough:false,obfuscated:false};
+
+// book: pages of raw text (with § codes typed inline for simplicity)
+let bookPages=[""];
+let curPage=0;
+// sign: front + back, 4 lines each
+let signFaces={front:["","","",""],back:["","","",""]};
+let signSide="front";
+let signType="standing"; // or "hanging"
+
+// limits from the wiki / source
+const BOOK_W=114, BOOK_LINES=14, BOOK_MAXPAGE=100;
+const SIGN_W=90, SIGN_LINES=4;
+
+// ---- color swatches ----
+COLORS.forEach(([name,hex])=>{
+  const b=document.createElement("button");
+  b.className="swatch";b.style.background=hex;b.title=name;
+  b.onclick=()=>{curColor=name;wrapSelection("color",name);};
+  $("colors").appendChild(b);
+});
+
+// ---- format buttons toggle a style on the current selection ----
+function fmtBtn(id,key){
+  $(id).onclick=()=>{ active[key]=!active[key]; $(id).classList.toggle("on",active[key]);
+    wrapSelection(key,active[key]); };
+}
+fmtBtn("fBold","bold");fmtBtn("fItalic","italic");fmtBtn("fUnder","underline");
+fmtBtn("fStrike","strikethrough");fmtBtn("fObf","obfuscated");
+$("fClear").onclick=()=>{ for(const k in active){active[k]=false;} 
+  ["fBold","fItalic","fUnder","fStrike","fObf"].forEach(i=>$(i).classList.remove("on"));
+  render(); };
+
+// for the simple editor we treat the textarea as plain text and apply the CURRENT
+// active styles to the whole thing. (a full rich-text selection editor is a bigger
+// job; this keeps it usable and the output correct)
+function wrapSelection(){ render(); }
+
+// ---- mode switching ----
+document.querySelectorAll(".modeBtn").forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode;
+  document.querySelectorAll(".modeBtn").forEach(x=>x.classList.toggle("primary",x===b));
+  syncModeUI();
+  render();
+});
+
+function syncModeUI(){
+  const isBook=mode==="book", isSign=mode==="sign";
+  $("flipRow").style.display=(isBook||isSign)?"flex":"none";
+  $("pageControls").style.display=isBook?"block":"none";
+  $("editLabel").textContent=mode==="text"?"Text":isBook?("Page "+(curPage+1)):("Sign "+signSide);
+  buildFlipRow();
+  // load the right text into the editor
+  if(isBook)$("editor").value=bookPages[curPage];
+  else if(isSign)$("editor").value=signFaces[signSide].join("\n");
+  // text mode keeps whatever's there
+}
+
+function buildFlipRow(){
+  const r=$("flipRow");r.innerHTML="";
+  if(mode==="book"){
+    const prev=document.createElement("button");prev.className="btn";prev.textContent="\u2190";
+    prev.onclick=()=>{ if(curPage>0){saveEditor();curPage--;syncModeUI();render();} };
+    const num=document.createElement("span");num.className="pageNum";
+    num.textContent="Page "+(curPage+1)+" / "+bookPages.length;
+    const next=document.createElement("button");next.className="btn";next.textContent="\u2192";
+    next.onclick=()=>{ saveEditor();
+      if(curPage<bookPages.length-1)curPage++;
+      else if(bookPages.length<BOOK_MAXPAGE){bookPages.push("");curPage++;}
+      syncModeUI();render(); };
+    const del=document.createElement("button");del.className="btn";del.textContent="delete page";
+    del.onclick=()=>{ if(bookPages.length>1){bookPages.splice(curPage,1);
+      if(curPage>=bookPages.length)curPage=bookPages.length-1;saveEditor(true);syncModeUI();render();} };
+    r.appendChild(prev);r.appendChild(num);r.appendChild(next);r.appendChild(del);
+  } else if(mode==="sign"){
+    const type=document.createElement("button");type.className="btn";
+    type.textContent=signType==="standing"?"standing":"hanging";
+    type.title="switch sign type";
+    type.onclick=()=>{ signType=signType==="standing"?"hanging":"standing";buildFlipRow();render(); };
+    const flip=document.createElement("button");flip.className="btn";
+    flip.textContent=signSide==="front"?"flip to back \u21BB":"flip to front \u21BA";
+    flip.onclick=()=>{ saveEditor();signSide=signSide==="front"?"back":"front";syncModeUI();render(); };
+    r.appendChild(type);r.appendChild(flip);
+  }
+}
+
+// pull the editor text back into the model for the current page/face
+function saveEditor(skipReadBack){
+  if(mode==="book")bookPages[curPage]=$("editor").value;
+  else if(mode==="sign")signFaces[signSide]=$("editor").value.split("\n").slice(0,SIGN_LINES);
+}
+
+$("editor").addEventListener("input",()=>{saveEditor();render();});
+
+// ---- word-wrap a string to a pixel width, returns array of lines ----
+function wrapToWidth(str,maxW,bold){
+  const out=[]; 
+  for(const para of str.split("\n")){
+    let line="",lineW=0;
+    for(const word of para.split(" ")){
+      const wW=textWidth(word,bold), spaceW=charW(' ')+(bold?1:0);
+      if(line==="" ){ 
+        // a single word longer than the line has to hard-break
+        if(wW>maxW){ let chunk=""; 
+          for(const c of word){ const cw=charW(c)+(bold?1:0);
+            if(textWidth(chunk,bold)+cw>maxW){out.push(chunk);chunk=c;} else chunk+=c; }
+          line=chunk;lineW=textWidth(chunk,bold);
+        } else {line=word;lineW=wW;}
+      } else if(lineW+spaceW+wW<=maxW){ line+=" "+word;lineW+=spaceW+wW; }
+      else { out.push(line);line=word;lineW=wW; }
+    }
+    out.push(line);
+  }
+  return out;
+}
+
+// ---- draw text onto the preview canvas in the MC font ----
+// we draw with the loaded webfont at a pixel scale so it looks in-game-ish
+function drawLines(ctx,lines,x,y,scale,color,styles){
+  ctx.textBaseline="top";
+  ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+(10*scale)+"px 'MinecraftTTF','VT323',monospace";
+  lines.forEach((ln,i)=>{
+    const ly=y+i*10*scale;
+    // shadow first (mc draws a dark drop shadow offset by 1px*scale)
+    ctx.fillStyle="rgba(0,0,0,0.55)";
+    ctx.fillText(ln,x+scale,ly+scale);
+    ctx.fillStyle=color;
+    ctx.fillText(ln,x,ly);
+    const w=ctx.measureText(ln).width;
+    if(styles.underline){ctx.fillRect(x,ly+9*scale,w,scale);}
+    if(styles.strikethrough){ctx.fillRect(x,ly+5*scale,w,scale);}
+  });
+}
+
+// ---- textures for book / sign backdrops ----
+const bookTexCache={};
+function loadTex(path,cb){
+  if(bookTexCache[path])return cb(bookTexCache[path]);
+  const im=new Image();im.crossOrigin="anonymous";
+  im.onload=()=>{bookTexCache[path]=im;cb(im);};
+  im.onerror=()=>{ if(im.dataset.fb)return cb(null); im.dataset.fb="1"; im.src=ASSET_FB+path; };
+  im.src=ASSET+path;
+}
+
+const hex=name=>{const c=COLORS.find(c=>c[0]===name);return c?c[1]:"#FFFFFF";};
+
+function render(){
+  const cv=$("render"),ctx=cv.getContext("2d");
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const color=hex(curColor);
+  $("warn").textContent="";
+
+  if(mode==="text"){
+    cv.width=420;cv.height=200;
+    ctx.imageSmoothingEnabled=false;
+    const raw=$("editor").value;
+    const lines=wrapToWidth(raw,380,active.bold);
+    drawLines(ctx,lines,10,12,2,color,active);
+    buildTextOutput(raw);
+  }
+  else if(mode==="book"){
+    cv.width=256;cv.height=300;
+    saveEditor();
+    loadTex("gui/book.png",img=>{
+      ctx.imageSmoothingEnabled=false;
+      ctx.clearRect(0,0,cv.width,cv.height);
+      if(img){
+        // the book graphic sits at (20,1)-(166,181) in the 256 sheet, 146x180.
+        // draw it scaled up to fill the preview
+        const s=1.6;
+        ctx.drawImage(img,20,1,146,180,10,10,146*s,180*s);
+      }
+      const page=bookPages[curPage];
+      const lines=wrapToWidth(page,BOOK_W,active.bold).slice(0,BOOK_LINES);
+      // page text area starts inside the right-ish region of the book art
+      drawLines(ctx,lines,42,40,1.6,color==="#FFFFFF"?"#3f3f3f":color,active);
+      const all=wrapToWidth(page,BOOK_W,active.bold);
+      if(all.length>BOOK_LINES)$("warn").textContent="this page is "+all.length+" lines, books cap at "+BOOK_LINES;
+    });
+    buildBookOutput();
+  }
+  else if(mode==="sign"){
+    cv.width=300;cv.height=240;
+    saveEditor();
+    ctx.imageSmoothingEnabled=false;
+    // the real gui sign textures. standing is 24x26 (board on a post), hanging is
+    // 16x16 (bar with two hangers over a board). blow em up big n crunchy
+    const path=signType==="hanging"?"gui/hanging_signs/oak.png":"gui/signs/oak.png";
+    // where the writable board sits inside each texture, as fractions of the image
+    const area=signType==="hanging"
+      ? {x:1/16, y:3/16, w:14/16, h:5/16}      // hanging: board is the lower box
+      : {x:0,    y:0,    w:1,     h:20/26};     // standing: top ~20px is the board
+    loadTex(path,img=>{
+      ctx.imageSmoothingEnabled=false;
+      ctx.clearRect(0,0,cv.width,cv.height);
+      const faceLines=signFaces[signSide];
+      let boardX,boardY,boardW,boardH;
+      if(img){
+        const iw=img.width,ih=img.height, S=280/iw; // scale to fill the width
+        const dw=iw*S, dh=ih*S, ox=(cv.width-dw)/2, oy=6;
+        ctx.drawImage(img,0,0,iw,ih,ox,oy,dw,dh);
+        boardX=ox+area.x*dw; boardY=oy+area.y*dh; boardW=area.w*dw; boardH=area.h*dh;
+      } else {
+        // fallback if the texture won't load: plain board
+        boardX=50;boardY=40;boardW=200;boardH=100;
+        ctx.fillStyle="#9c7f4e";ctx.fillRect(boardX,boardY,boardW,boardH);
+      }
+      const cx=boardX+boardW/2;
+      const lh=boardH/(SIGN_LINES+0.5);
+      ctx.textAlign="center";
+      faceLines.forEach((ln,i)=>{
+        const trimmed=ln.slice(0,60);
+        const over=textWidth(trimmed,active.bold)>SIGN_W;
+        const fs=Math.max(11,lh*0.7);
+        ctx.font=(active.italic?"italic ":"")+(active.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
+        const ly=boardY+lh*0.6+i*lh;
+        ctx.fillStyle="rgba(0,0,0,0.4)";ctx.fillText(trimmed,cx+1,ly+1);
+        ctx.fillStyle=over?"#c0392b":(color==="#FFFFFF"?"#1c1c1c":color);
+        ctx.fillText(trimmed,cx,ly);
+      });
+      ctx.textAlign="left";
+    });
+    const anyOver=signFaces[signSide].some(l=>textWidth(l,active.bold)>SIGN_W);
+    if(anyOver)$("warn").textContent="a line is wider than a sign fits ("+SIGN_W+"px), itll get cut off in game";
+    buildSignOutput();
+  }
+}
+
+// ---- build the styled component object for the current styles ----
+function styleObj(text){
+  const o={text:text};
+  if(curColor!=="white")o.color=curColor;
+  for(const k of ["bold","italic","underline","strikethrough","obfuscated"])if(active[k])o[k]=true;
+  return o;
+}
+
+function buildTextOutput(raw){
+  const comp=styleObj(raw);
+  $("output").value='/tellraw @p '+JSON.stringify(comp);
+  $("outHint").textContent="a /tellraw with your styled text";
+}
+function buildBookOutput(){
+  // each page becomes one styled component (whole-page styling, matches the editor)
+  const pages=bookPages.map(p=>JSON.stringify(styleObj(p)));
+  const nbt='written_book_content={pages:['+pages.map(p=>"'"+p.replace(/'/g,"\\'")+"'").join(",")+
+    "],title:\"My Book\",author:\"me\"}";
+  $("output").value="/give @p written_book["+nbt+"]";
+  $("outHint").textContent=bookPages.length+" page"+(bookPages.length>1?"s":"")+", 1.21 component syntax";
+}
+function buildSignOutput(){
+  const mk=face=>"{messages:["+signFaces[face].concat(["","","",""]).slice(0,4)
+    .map(l=>JSON.stringify(styleObj(l))).join(",")+"]}";
+  const block=signType==="hanging"?"oak_hanging_sign":"oak_sign";
+  const nbt="front_text="+mk("front")+",back_text="+mk("back");
+  $("output").value="/setblock ~ ~ ~ "+block+"["+nbt+"]";
+  $("outHint").textContent="both faces, "+signType+" sign, place with /setblock";
+}
+
+$("copyBtn").onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($("output").value);};
+
+// go
+syncModeUI();
+render();
+</script>
+</body>
+</html>
