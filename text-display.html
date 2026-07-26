@@ -140,6 +140,7 @@ let curPage=0;
 let signFaces={front:["","","",""],back:["","","",""]};
 let signSide="front";
 let signType="standing"; // or "hanging"
+let signGlow=false;      // glowing text (glow ink sac)
 
 // limits from the wiki / source
 const BOOK_W=114, BOOK_LINES=14, BOOK_MAXPAGE=100;
@@ -227,10 +228,14 @@ function buildFlipRow(){
     type.textContent=signType==="standing"?"standing":"hanging";
     type.title="switch sign type";
     type.onclick=()=>{ signType=signType==="standing"?"hanging":"standing";buildFlipRow();render(); };
+    const glow=document.createElement("button");glow.className="btn"+(signGlow?" primary":"");
+    glow.textContent=signGlow?"glowing":"glow off";
+    glow.title="glowing text (glow ink sac)";
+    glow.onclick=()=>{ signGlow=!signGlow;buildFlipRow();render(); };
     const flip=document.createElement("button");flip.className="btn";
     flip.textContent=signSide==="front"?"flip to back \u21BB":"flip to front \u21BA";
     flip.onclick=()=>{ saveEditor();signSide=signSide==="front"?"back":"front";syncModeUI();render(); };
-    r.appendChild(type);r.appendChild(flip);
+    r.appendChild(type);r.appendChild(glow);r.appendChild(flip);
   }
 }
 
@@ -266,14 +271,16 @@ function wrapToWidth(str,maxW,bold){
 
 // ---- draw text onto the preview canvas in the MC font ----
 // scale is in device pixels. font drawn crisp, with the mc drop shadow
-function drawLines(ctx,lines,x,y,px,color,styles){
+function drawLines(ctx,lines,x,y,px,color,styles,noShadow){
   ctx.textBaseline="top";
   ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+px+"px 'MinecraftTTF','VT323',monospace";
   lines.forEach((ln,i)=>{
     const ly=y+i*px*1.05;
     const shown=styles.obfuscated?obfuscate(ln):ln;
-    ctx.fillStyle="rgba(0,0,0,0.55)";
-    ctx.fillText(shown,x+Math.max(1,px/10),ly+Math.max(1,px/10));
+    if(!noShadow){
+      ctx.fillStyle="rgba(0,0,0,0.55)";
+      ctx.fillText(shown,x+Math.max(1,px/10),ly+Math.max(1,px/10));
+    }
     ctx.fillStyle=color;
     ctx.fillText(shown,x,ly);
     const w=ctx.measureText(shown).width;
@@ -298,6 +305,32 @@ function loadTex(path,cb){
 }
 
 const hex=name=>{ if(name&&name[0]==="#")return name; const c=COLORS.find(c=>c[0]===name);return c?c[1]:"#FFFFFF";};
+
+// from the decompiled AbstractSignRenderer.getDarkColor:
+// non-glowing sign text is drawn at 40% brightness. black+glowing is a special cream.
+// glowing text uses the FULL color plus an outline at full brightness.
+function darken(hexColor,f){
+  const n=parseInt(hexColor.slice(1),16);
+  const r=Math.floor(((n>>16)&0xFF)*f), g=Math.floor(((n>>8)&0xFF)*f), b=Math.floor((n&0xFF)*f);
+  return "#"+[r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("");
+}
+// draw one line of sign text with the real glow/dark behavior
+function drawSignLine(ctx,text,cx,y,fs,fullColor,glow,styles){
+  ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
+  const shown=styles.obfuscated?obfuscate(text):text;
+  if(glow){
+    // full-bright color with a dark outline around it, like the emissive glow text
+    const isBlack=fullColor.toUpperCase()==="#000000";
+    const outline=isBlack?"#F0EBCC":darken(fullColor,0.4);
+    ctx.lineJoin="round";ctx.lineWidth=Math.max(2,fs/7);
+    ctx.strokeStyle=outline;ctx.strokeText(shown,cx,y);
+    ctx.fillStyle=isBlack?"#000000":fullColor;ctx.fillText(shown,cx,y);
+  } else {
+    // non-glowing: darken to 40% (no drop shadow on signs)
+    ctx.fillStyle=darken(fullColor,0.4);
+    ctx.fillText(shown,cx,y);
+  }
+}
 
 // size the canvas backing store to its displayed size times the device pixel ratio,
 // so text renders sharp instead of being a small canvas stretched up by css
@@ -344,7 +377,10 @@ function render(){
       const page=bookPages[curPage];
       const scale=pw/BOOK_W; // one "book pixel" = this many screen px
       const lines=wrapToWidth(page,BOOK_W,active.bold).slice(0,BOOK_LINES);
-      drawLines(ctx,lines,px,py,9*scale,color==="#FFFFFF"?"#3f3f3f":color,active);
+      // books render text dark (no shadow, flat on the page). white/default shows as
+      // the book's dark ink; colored text keeps its hue but stays readable on cream
+      const inkColor=color==="#FFFFFF"?"#3f3f3f":color;
+      drawLines(ctx,lines,px,py,9*scale,inkColor,active,true);
       const all=wrapToWidth(page,BOOK_W,active.bold);
       if(all.length>BOOK_LINES)$("warn").textContent="this page is "+all.length+" lines, books cap at "+BOOK_LINES;
     });
@@ -372,21 +408,20 @@ function render(){
       } else { bx=w*0.1;by=h*0.1;bw=w*0.8;bh=h*0.5;
         ctx.fillStyle="#9c7f4e";ctx.fillRect(bx,by,bw,bh); }
       const faceLines=signFaces[signSide];
-      // signs are 4 lines evenly spaced on the board, center aligned
-      const lineGap=bh/SIGN_LINES;
-      const fs=lineGap*0.62;
+      // signs render 4 lines at a fixed line height, centered vertically on the board.
+      // the source does y = i*lineHeight - (4*lineHeight/2), i.e. centered. so we
+      // center the 4-line block in the board and space evenly
+      const lineH=bh/4.6;              // a touch of padding top/bottom
+      const fs=lineH*0.82;
+      const blockH=lineH*4;
+      const top=by+(bh-blockH)/2;
       const cx=bx+bw/2;
-      ctx.textAlign="center";
+      ctx.textAlign="center";ctx.textBaseline="middle";
       faceLines.forEach((ln,i)=>{
-        const over=textWidth(ln,active.bold)>SIGN_W;
-        ctx.font=(active.italic?"italic ":"")+(active.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
-        const shown=active.obfuscated?obfuscate(ln):ln;
-        const ly=by+lineGap*i+lineGap*0.2;
-        ctx.fillStyle="rgba(0,0,0,0.4)";ctx.fillText(shown,cx+1,ly+1);
-        ctx.fillStyle=over?"#c0392b":(color==="#FFFFFF"?"#1c1c1c":color);
-        ctx.fillText(shown,cx,ly);
+        const ly=top+lineH*i+lineH/2;
+        drawSignLine(ctx,ln,cx,ly,fs,color,signGlow,active);
       });
-      ctx.textAlign="left";
+      ctx.textAlign="left";ctx.textBaseline="top";
     });
     const anyOver=signFaces[signSide].some(l=>textWidth(l,active.bold)>SIGN_W);
     if(anyOver)$("warn").textContent="a line is wider than a sign fits ("+SIGN_W+"px), itll get cut off in game";
@@ -420,12 +455,13 @@ function buildBookOutput(){
   $("outHint").textContent=bookPages.length+" page"+(bookPages.length>1?"s":"")+", 1.21 component syntax";
 }
 function buildSignOutput(){
+  const glowNbt=signGlow?",has_glowing_text:true":"";
   const mk=face=>"{messages:["+signFaces[face].concat(["","","",""]).slice(0,4)
-    .map(l=>JSON.stringify(styleObj(l))).join(",")+"]}";
+    .map(l=>JSON.stringify(styleObj(l))).join(",")+"]"+glowNbt+"}";
   const block=signType==="hanging"?"oak_hanging_sign":"oak_sign";
   const nbt="front_text="+mk("front")+",back_text="+mk("back");
   $("output").value="/setblock ~ ~ ~ "+block+"["+nbt+"]";
-  $("outHint").textContent="both faces, "+signType+" sign, place with /setblock";
+  $("outHint").textContent="both faces, "+signType+" sign"+(signGlow?", glowing":"")+", place with /setblock";
 }
 
 $("copyBtn").onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($("output").value);};
