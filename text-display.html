@@ -137,7 +137,7 @@ const active={bold:false,italic:false,underline:false,strikethrough:false,obfusc
 let bookPages=[""];
 let curPage=0;
 // sign: front + back, 4 lines each
-let signFaces={front:["","","",""],back:["","","",""]};
+let signFaces={front:"",back:""};
 let signSide="front";
 let signType="standing"; // or "hanging"
 let signGlow=false;      // glowing text (glow ink sac)
@@ -203,7 +203,7 @@ function syncModeUI(){
   buildFlipRow();
   // load the right text into the editor
   if(isBook)$("editor").value=bookPages[curPage];
-  else if(isSign)$("editor").value=signFaces[signSide].join("\n");
+  else if(isSign)$("editor").value=signFaces[signSide];
   // text mode keeps whatever's there
 }
 
@@ -242,10 +242,30 @@ function buildFlipRow(){
 // pull the editor text back into the model for the current page/face
 function saveEditor(skipReadBack){
   if(mode==="book")bookPages[curPage]=$("editor").value;
-  else if(mode==="sign")signFaces[signSide]=$("editor").value.split("\n").slice(0,SIGN_LINES);
+  else if(mode==="sign")signFaces[signSide]=$("editor").value;
 }
 
-$("editor").addEventListener("input",()=>{saveEditor();render();});
+$("editor").addEventListener("input",()=>{
+  saveEditor();
+  if(mode==="book")reflowBook();
+  render();
+});
+
+// if the current book page wraps past 14 lines, push the overflow lines onto the
+// start of the next page (making one if needed). keeps typing from just vanishing
+function reflowBook(){
+  const wrapped=wrapToWidth(bookPages[curPage],BOOK_W,active.bold);
+  if(wrapped.length<=BOOK_LINES)return;
+  const keep=wrapped.slice(0,BOOK_LINES).join("\n");
+  const overflow=wrapped.slice(BOOK_LINES).join("\n");
+  bookPages[curPage]=keep;
+  if(curPage+1>=bookPages.length){ if(bookPages.length<BOOK_MAXPAGE)bookPages.push(""); else return; }
+  // prepend the overflow to the next page, with a space so words don't glue together
+  bookPages[curPage+1]=overflow+(bookPages[curPage+1]?" "+bookPages[curPage+1]:"");
+  // update the editor to show the trimmed current page
+  $("editor").value=bookPages[curPage];
+  buildFlipRow();
+}
 
 // ---- word-wrap a string to a pixel width, returns array of lines ----
 function wrapToWidth(str,maxW,bold){
@@ -319,11 +339,14 @@ function drawSignLine(ctx,text,cx,y,fs,fullColor,glow,styles){
   ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
   const shown=styles.obfuscated?obfuscate(text):text;
   if(glow){
-    // full-bright color with a dark outline around it, like the emissive glow text
+    // full-bright color with a chunky outline, like the emissive glow text.
+    // stamp the text at pixel-step offsets for a crisp outline instead of the
+    // smooth strokeText (which anti-aliases and looks wrong against the pixel font)
     const isBlack=fullColor.toUpperCase()==="#000000";
     const outline=isBlack?"#F0EBCC":darken(fullColor,0.4);
-    ctx.lineJoin="round";ctx.lineWidth=Math.max(2,fs/7);
-    ctx.strokeStyle=outline;ctx.strokeText(shown,cx,y);
+    const o=Math.max(2,Math.round(fs/9));
+    ctx.fillStyle=outline;
+    for(let dx=-o;dx<=o;dx+=o)for(let dy=-o;dy<=o;dy+=o){ if(dx||dy)ctx.fillText(shown,cx+dx,y+dy); }
     ctx.fillStyle=isBlack?"#000000":fullColor;ctx.fillText(shown,cx,y);
   } else {
     // non-glowing: darken to 40% (no drop shadow on signs)
@@ -407,7 +430,9 @@ function render(){
         bw=(region.x1-region.x0)*dw; bh=(region.y1-region.y0)*dh;
       } else { bx=w*0.1;by=h*0.1;bw=w*0.8;bh=h*0.5;
         ctx.fillStyle="#9c7f4e";ctx.fillRect(bx,by,bw,bh); }
-      const faceLines=signFaces[signSide];
+      // wrap the raw text to the sign width, then keep the first 4 lines
+      const allLines=wrapToWidth(signFaces[signSide],SIGN_W,active.bold);
+      const faceLines=allLines.slice(0,SIGN_LINES);
       // signs render 4 lines at a fixed line height, centered vertically on the board.
       // the source does y = i*lineHeight - (4*lineHeight/2), i.e. centered. so we
       // center the 4-line block in the board and space evenly
@@ -422,9 +447,8 @@ function render(){
         drawSignLine(ctx,ln,cx,ly,fs,color,signGlow,active);
       });
       ctx.textAlign="left";ctx.textBaseline="top";
+      if(allLines.length>SIGN_LINES)$("warn").textContent="that's "+allLines.length+" lines, a sign only fits "+SIGN_LINES;
     });
-    const anyOver=signFaces[signSide].some(l=>textWidth(l,active.bold)>SIGN_W);
-    if(anyOver)$("warn").textContent="a line is wider than a sign fits ("+SIGN_W+"px), itll get cut off in game";
     buildSignOutput();
   }
 
@@ -456,8 +480,12 @@ function buildBookOutput(){
 }
 function buildSignOutput(){
   const glowNbt=signGlow?",has_glowing_text:true":"";
-  const mk=face=>"{messages:["+signFaces[face].concat(["","","",""]).slice(0,4)
-    .map(l=>JSON.stringify(styleObj(l))).join(",")+"]"+glowNbt+"}";
+  // wrap each face the same way the preview does, then pad to 4 lines
+  const mk=face=>{
+    const lines=wrapToWidth(signFaces[face],SIGN_W,active.bold).slice(0,SIGN_LINES);
+    while(lines.length<4)lines.push("");
+    return "{messages:["+lines.map(l=>JSON.stringify(styleObj(l))).join(",")+"]"+glowNbt+"}";
+  };
   const block=signType==="hanging"?"oak_hanging_sign":"oak_sign";
   const nbt="front_text="+mk("front")+",back_text="+mk("back");
   $("output").value="/setblock ~ ~ ~ "+block+"["+nbt+"]";
