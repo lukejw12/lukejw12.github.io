@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Command Generator 1.21.11</title>
+<link rel="stylesheet" href="ui/style.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+  @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
+  *{box-sizing:border-box;image-rendering:pixelated}
+  .wrap{max-width:900px;margin:0 auto;padding:14px 18px 40px}
+
+  /* the live command box, sticky so it stays put. black n green like the code boxes on the other pages */
+  #out{position:sticky;top:6px;z-index:5;margin-bottom:14px}
+  #outText{background:#000;color:#54fc54;border:2px solid #a0a0a0;padding:8px 10px;font-size:16px;
+    word-break:break-all;white-space:pre-wrap;min-height:38px;line-height:1.4}
+  .outRow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  .valid{color:#54fc54;text-shadow:2px 2px #14421e;font-size:16px}
+  .invalid{color:#fcae54;font-size:16px}
+  html.dark .invalid{color:#f0c060}
+
+  /* committed segments, left accent + panel bevel */
+  .seg{border:2px solid #1a1a1a;box-shadow:inset 4px 0 0 #6d9c50, inset 6px 2px 0 -2px #e8e8e8, inset -2px -2px 0 #6b6b6b;background:#b8b8b8;padding:8px 10px 8px 14px;margin:8px 0}
+  html.dark .seg{background:#1b1e25;border:2px solid #0a0c10;box-shadow:inset 4px 0 0 #6d9c50, inset -2px -2px 0 #10131a}
+  .segHead{display:flex;align-items:center;gap:8px}
+  .segName{color:#4a4a4a;font-size:16px}
+  html.dark .segName{color:#9aa2b2}
+  .lit{color:#2b6d1c}
+  html.dark .lit{color:#8cd97a}
+  .xbtn{background:none;border:none;box-shadow:none;text-shadow:none;color:#8a2a2a;
+    cursor:pointer;font-size:17px;padding:0 4px;line-height:1}
+  .xbtn:hover{background:none;box-shadow:none;color:#c04a3a}
+
+  .wrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+  .lbl{color:#3f3f3f;font-size:16px}
+  html.dark .lbl{color:#c3c8d4}
+  input,select,textarea{font-family:'MinecraftTTF','VT323',monospace;font-size:16px;background:#000;
+    color:#e0e0e0;border:2px solid #a0a0a0;padding:4px 7px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:#fff}
+  html.dark input,html.dark select,html.dark textarea{background:#0c0e12;color:#d8dbe2;border-color:#4a5162}
+  html.dark input:focus,html.dark select:focus,html.dark textarea:focus{border-color:#9ecbff}
+  textarea{width:100%;resize:vertical;min-height:44px;line-height:1.4}
+  .coord{width:62px;text-align:center}
+  .num{width:78px}
+  .grow{flex:1 1 150px;min-width:0}
+
+  /* next chooser + chips (chips are just smaller buttons) */
+  .next{margin-top:12px}
+  .nextLbl{color:#4a4a4a;font-size:16px;margin-bottom:6px}
+  html.dark .nextLbl{color:#9aa2b2}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:16px;padding:3px 10px 1px}
+
+  /* item component editor */
+  .comp{background:#b8b8b8;border:2px solid #1a1a1a;box-shadow:inset 2px 2px 0 #e8e8e8, inset -2px -2px 0 #6b6b6b;padding:8px;margin-top:6px}
+  html.dark .comp{background:#1b1e25;border:2px solid #0a0c10;box-shadow:inset 2px 2px 0 #3f4552, inset -2px -2px 0 #10131a}
+  .compHead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .compName{color:#4a4a4a;font-size:16px}
+  html.dark .compName{color:#9aa2b2}
+  .subrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+  .rawbox{background:#c6c6c6;border:2px dashed #6b6b6b;padding:8px;margin-top:8px}
+  html.dark .rawbox{background:#23262e;border-color:#4a5162}
+  .rawlbl{color:#4a4a4a;font-size:14px;margin-bottom:4px}
+  html.dark .rawlbl{color:#8b93a3}
+  .small{color:#4a4a4a;font-size:14px}
+  html.dark .small{color:#8b93a3}
+  .loading{text-align:center;color:#4a4a4a;padding:26px}
+  html.dark .loading{color:#8b93a3}
+
+  /* warnings */
+  #warns{margin:10px 0}
+  .warnrow{background:#d8c88a;border:2px solid;border-color:#f0d060 #8a6a10 #8a6a10 #f0d060;
+    color:#3a2e00;padding:6px 10px;font-size:15px;margin-bottom:6px;line-height:1.4}
+  html.dark .warnrow{background:#3a3320;border-color:#8a7a30 #201c10 #201c10 #8a7a30;color:#f0d98a}
+  .warnrow code{background:rgba(0,0,0,.18);padding:0 3px}
+  html.dark .warnrow code{background:#0c0e12;color:#f0d98a}
+  .errrow{background:#e6b8b0;border:2px solid;border-color:#f0a090 #8a3a2a #8a3a2a #f0a090;
+    color:#5a1a10;padding:6px 10px;font-size:15px;margin-bottom:6px;line-height:1.4}
+  html.dark .errrow{background:#3a201c;border-color:#8a4030 #201010 #201010 #8a4030;color:#f0b0a0}
+  .errrow code{background:rgba(0,0,0,.18);padding:0 3px}
+  html.dark .errrow code{background:#0c0e12;color:#f0b0a0}
+  .compName{user-select:none}
+  .nbtnode{min-width:0}
+  .nbtchildren{border-left:2px solid #3a4560;margin-left:6px;padding-left:8px}
+  html.dark .nbtchildren{border-left-color:#2a3348}
+  .nbtrow{margin:5px 0}
+  .subgroup{border-left:2px solid #3a4560;margin:6px 0 6px 2px;padding:4px 0 4px 8px}
+  html.dark .subgroup{border-left-color:#2a3348}
+  .subhead{color:#8ea0c8;font-size:14px;margin-bottom:2px}
+  html.dark .subhead{color:#7a86a0}
+  .listitem{background:rgba(0,0,0,.12);border:1px dashed #6b6b6b;padding:6px;margin:5px 0}
+  html.dark .listitem{border-color:#3a4560}
+  /* text-component editor */
+  .fmt{font-size:15px;padding:3px 9px 1px;min-width:30px}
+  .fmt.on{background:#6d9c50;box-shadow:inset 2px 2px 0 #c8e8b0, inset -2px -2px 0 #2b451c;color:#fff}
+  html.dark .fmt.on{background:#3d6b2a;box-shadow:inset 2px 2px 0 #6fa050, inset -2px -2px 0 #16280d}
+  .cprev{display:block;margin-top:6px;background:#1a1a1a;border:2px solid;border-color:#555 #111 #111 #555;
+    image-rendering:pixelated;max-width:100%}
+  html.dark .cprev{background:#0c0e12}
+  #out.mini #outText{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #out.mini{padding-bottom:6px}
+  .btn.sm{font-size:14px;padding:2px 8px 1px}
+  .hexpick{width:44px;height:30px;padding:1px;border:2px solid #a0a0a0;background:#000;cursor:pointer}
+  html.dark .hexpick{border-color:#4a5162}
+
+  /* compact command strip: whole command as editable chips */
+  .strip{display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:#000;border:2px solid #a0a0a0;
+    padding:8px;line-height:1.5}
+  html.dark .strip{background:#0c0e12;border-color:#4a5162}
+  .strip .slash{color:#54fc54;font-size:16px}
+  .tok{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;font-size:15px;cursor:pointer;
+    border:1px solid transparent;max-width:100%;min-width:0}
+  .toklab{display:inline-block;max-width:60vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+  .tok.lit .toklab{color:#8cd97a}
+  .tok.arg{background:#1c2436;border:1px solid #2f3f5f}
+  .tok.arg .toklab{color:#cfe0ff}
+  .tok.arg.empty .toklab{color:#f0a050;font-style:italic}
+  .tok.sel{outline:2px solid #fcfc54;outline-offset:0}
+  .tokx{color:#7a8296;font-size:13px;flex:0 0 auto}
+  .tok:hover .tokx{color:#ff8a7a}
+  .tok.lit .tokx{color:#4a5a3a}
+
+  /* single editor for the selected token */
+  .editpanel{background:#b8b8b8;border:2px solid #1a1a1a;box-shadow:inset 2px 2px 0 #e8e8e8, inset -2px -2px 0 #6b6b6b;padding:8px 10px;margin:10px 0}
+  html.dark .editpanel{background:#1b1e25;border:2px solid #0a0c10;box-shadow:inset 2px 2px 0 #3f4552, inset -2px -2px 0 #10131a}
+  .edhead .edname{color:#4a4a4a;font-size:15px}
+  html.dark .edhead .edname{color:#9aa2b2}
+
+  /* mobile: keep it all on screen, long chips clip with ... instead of runnin off the edge */
+  html,body{overflow-x:hidden;max-width:100%}
+  .wrap{overflow-x:hidden}
+  input,select,textarea{max-width:100%}
+  .compHead .compName{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .compHead .xbtn{flex:0 0 auto}
+  @media(min-width:701px){ .toklab{max-width:460px} }
+  @media(max-width:700px){ .wrap{padding:8px} #outText{font-size:15px} }
+</style>
+</head>
+<body>
+<script>try{if(localStorage.getItem("pvDark")==="1")document.documentElement.classList.add("dark");}catch(e){}</script>
+<script src="ui/quotes.js"></script>
+<script src="ui/common.js" defer></script>
+<div class="wrap">
+  <header>
+    <h1>Command Generator</h1>
+    <span class="splash" id="splash">Java 1.21.11!</span>
+    <span class="hint">build any command, with the syntax done for you</span>
+    <div class="hdrBtns">
+      <a class="btn" href="index.html">&larr; Menu</a>
+      <button id="darkBtn" class="iconBtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic-sun" viewBox="0 0 9 9" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1"/><rect x="1" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/><rect x="7" y="1" width="1" height="1"/><rect x="3" y="3" width="3" height="1"/><rect x="0" y="4" width="2" height="1"/><rect x="3" y="4" width="3" height="1"/><rect x="7" y="4" width="2" height="1"/><rect x="3" y="5" width="3" height="1"/><rect x="1" y="7" width="1" height="1"/><rect x="4" y="7" width="1" height="1"/><rect x="7" y="7" width="1" height="1"/><rect x="4" y="8" width="1" height="1"/></svg><svg class="ic-moon" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="0" width="2" height="1"/><rect x="1" y="1" width="2" height="1"/><rect x="0" y="2" width="3" height="1"/><rect x="0" y="3" width="3" height="1"/><rect x="0" y="4" width="4" height="1"/><rect x="7" y="4" width="1" height="1"/><rect x="0" y="5" width="8" height="1"/><rect x="1" y="6" width="6" height="1"/><rect x="2" y="7" width="4" height="1"/></svg></button>
+    </div>
+  </header>
+
+  <div id="out" class="panel">
+    <div class="outRow" style="margin-top:0;margin-bottom:8px">
+      <button id="outMin" class="btn sm" title="minimize output">&#8211;</button>
+      <span class="small" style="align-self:center">output</span>
+    </div>
+    <div id="outText">/</div>
+    <div class="outRow">
+      <button id="copyBtn" class="primary">Copy</button>
+      <button id="resetBtn">Reset</button>
+      <span id="validity" class="valid"></span>
+    </div>
+  </div>
+
+  <div id="importRow" class="panel" style="margin-bottom:12px">
+    <div class="wrow">
+      <input id="importIn" class="grow" placeholder="paste a command here to edit it" spellcheck="false" autocapitalize="off">
+      <button id="importBtn" class="btn">import</button>
+    </div>
+    <div id="importMsg" class="small" style="margin-top:4px"></div>
+  </div>
+
+  <div id="warns" style="display:none"></div>
+
+  <div id="builder" class="panel">
+    <div class="loading" id="loadMsg">loading the commands...</div>
+  </div>
+
+  <p class="hint" style="margin-top:14px">
+    pick a command, fill in the parts it needs, then add the optional bits from the "next" chips.
+    the fiddly arguments (nbt, item components) get a proper editor plus a raw box, so you can always type whatever you need.
+  </p>
+</div>
+
+<script>
+(function(){
+"use strict";
+var DATA=null, ROOT=null;
+var segments=[];
+var sel=null;
+var $=function(id){return document.getElementById(id);};
+
+
+// lil helpers for walkin the command tree
+function nodeAtPath(arr){ var n=DATA.tree; for(var i=0;i<arr.length;i++){ n=n.c[arr[i]]; } return n; }
+function childrenOf(seg){
+  var n = seg ? seg.node : DATA.tree;
+  if(n.c) return n.c;
+  if(n.rd){ var t=nodeAtPath(n.rd); return t?t.c:null; }
+  if(seg && seg.key==='run') return DATA.tree.c;
+  return null;
+}
+function isExecutable(seg){ return seg ? !!seg.node.x : false; }
+
+// a sensible starting value for each arg type so nothin imports/adds broken
+var DEF_RES={item:'stone',block:'stone',entity_type:'zombie',mob_effect:'speed',
+  enchantment:'sharpness',attribute:'',sound_event:'',particle_type:'flame',dimension:'overworld',potion:''};
+function regKeyFor(parser,props){
+  if(props && props.registry){
+    var r=props.registry.replace('minecraft:','');
+    if(DATA.registries[r]) return r;
+    return null;
+  }
+  return null;
+}
+function defaultValue(parser,props){
+  props=props||{};
+  switch(parser){
+    case 'brigadier:integer': return String(props.min!=null?props.min:0);
+    case 'brigadier:float': case 'brigadier:double': return String(props.min!=null?props.min:0);
+    case 'brigadier:bool': return 'true';
+    case 'minecraft:entity': case 'minecraft:score_holder':
+      return (props.type==='players') ? '@p' : (props.amount==='single'?'@s':'@e');
+    case 'minecraft:game_profile': return '@p';
+    case 'minecraft:block_pos': case 'minecraft:vec3': return '~ ~ ~';
+    case 'minecraft:column_pos': case 'minecraft:vec2': case 'minecraft:rotation': return '~ ~';
+    case 'minecraft:item_stack': case 'minecraft:item_predicate': return 'stone';
+    case 'minecraft:block_state': case 'minecraft:block_predicate': return 'stone';
+    case 'minecraft:gamemode': return 'survival';
+    case 'minecraft:item_slot': case 'minecraft:item_slots': return 'weapon.mainhand';
+    case 'minecraft:dimension': return 'overworld';
+    case 'minecraft:entity_anchor': return 'feet';
+    case 'minecraft:color': return 'white';
+    case 'minecraft:heightmap': return 'world_surface';
+    case 'minecraft:swizzle': return 'xyz';
+    case 'minecraft:scoreboard_slot': return 'sidebar';
+    case 'minecraft:template_rotation': return 'none';
+    case 'minecraft:template_mirror': return 'none';
+    case 'minecraft:time': return '20';
+    case 'minecraft:component': return '"Hello"';
+    case 'minecraft:nbt_compound_tag': return '{}';
+    case 'minecraft:nbt_tag': return '{}';
+    case 'minecraft:nbt_path': return 'Health';
+    case 'minecraft:int_range': case 'minecraft:float_range': return '1..5';
+    case 'minecraft:message': return 'hi';
+    case 'minecraft:uuid': return '';
+    case 'minecraft:objective': return 'obj';
+    case 'minecraft:objective_criteria': return 'dummy';
+    case 'minecraft:team': return 'team';
+    case 'minecraft:operation': return '=';
+    case 'minecraft:particle': return 'flame';
+    case 'minecraft:hex_color': return 'ffffff';
+    case 'minecraft:style': return '{}';
+    default:
+      var rk = regKeyFor(parser,props);
+      if(rk) return DEF_RES[rk]!=null?DEF_RES[rk]:'';
+      return '';
+  }
+}
+
+// build each dropdown list once n reuse it. item/block/sound are huge so dont redo em every time
+var madeDL={};
+var madeDL2={};
+function listDatalist(id,arr){ if(madeDL2[id])return id; var dl=document.createElement('datalist'); dl.id=id;
+  var f=document.createDocumentFragment(); for(var i=0;i<arr.length;i++){ var o=document.createElement('option'); o.value=arr[i]; f.appendChild(o); }
+  dl.appendChild(f); document.body.appendChild(dl); madeDL2[id]=1; return id; }
+function comboDatalist(reg,tagreg){
+  var id='dl_'+reg+'__'+tagreg;
+  var arr=(DATA.registries[reg]||[]).concat(DATA.registries[tagreg]||[]);
+  return listDatalist(id,arr);
+}
+function ensureDatalist(reg){
+  if(madeDL[reg]) return 'dl_'+reg;
+  var list=DATA.registries[reg]; if(!list) return null;
+  var dl=document.createElement('datalist'); dl.id='dl_'+reg;
+  var frag=document.createDocumentFragment();
+  for(var i=0;i<list.length;i++){ var o=document.createElement('option'); o.value=list[i]; frag.appendChild(o); }
+  dl.appendChild(frag); document.body.appendChild(dl); madeDL[reg]=true; return dl.id;
+}
+
+// tiny dom makers so i stop typin createElement everywhere
+function mkInput(val,cls,ph){ var i=document.createElement('input'); i.value=val==null?'':val;
+  if(cls)i.className=cls; if(ph)i.placeholder=ph; return i; }
+function mkSelect(opts,val){ var s=document.createElement('select');
+  for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i]; o.textContent=opts[i];
+    if(opts[i]===val)o.selected=true; s.appendChild(o); } return s; }
+function lbl(t){ var l=document.createElement('label'); l.className='lbl'; l.textContent=t; return l; }
+function bindLive(el,seg,getter){
+  el.addEventListener('input',function(){ seg.value=getter(); updateOutput(); });
+  el.addEventListener('change',function(){ seg.value=getter(); updateOutput(); });
+}
+var NUM_BOUNDS={'minecraft:damage':[0,null],'minecraft:max_damage':[1,null],'minecraft:max_stack_size':[1,99],'minecraft:dyed_color':[0,16777215]};
+var FIELD_MIN={nutrition:0,saturation:0,value:1,repair_cost:0,map_color:0,map_id:0,seconds:0,consume_seconds:0,potion_duration_scale:0,ominous_bottle_amplifier:0,item_damage_per_attack:0,disable_blocking_for_seconds:0,default_mining_speed:0,damage_per_block:0,min_reach:0,max_reach:0,hitbox_margin:0,min_creative_reach:0,max_creative_reach:0,mob_factor:0,speed_multiplier:0,minimum_attack_charge:0};
+function clampNum(v,min,max){ if(v==null||isNaN(v))return (min!=null?min:0); if(min!=null&&v<min)v=min; if(max!=null&&v>max)v=max; return v; }
+
+function argWidget(seg){
+  var wrap=document.createElement('div'); wrap.className='wrow';
+  var p=seg.parser, props=seg.props||{};
+
+  if(p==='brigadier:integer'||p==='brigadier:float'||p==='brigadier:double'){
+    var inp=mkInput(seg.value,'num'); inp.type='number';
+    if(props.min!=null)inp.min=props.min; if(props.max!=null)inp.max=props.max;
+    if(p!=='brigadier:integer')inp.step='any';
+    bindLive(inp,seg,function(){return inp.value;}); wrap.appendChild(inp); return wrap;
+  }
+  if(p==='brigadier:bool'){ var sb=mkSelect(['true','false'],seg.value); bindLive(sb,seg,function(){return sb.value;}); wrap.appendChild(sb); return wrap; }
+
+  var enumMap={'minecraft:gamemode':'gamemode','minecraft:item_slot':'item_slot','minecraft:item_slots':'item_slot',
+    'minecraft:entity_anchor':'entity_anchor','minecraft:color':'color','minecraft:heightmap':'heightmap',
+    'minecraft:swizzle':'swizzle','minecraft:scoreboard_slot':'scoreboard_slot','minecraft:operation':'operation',
+    'minecraft:template_rotation':'template_rotation','minecraft:template_mirror':'template_mirror'};
+  if(enumMap[p] && DATA.enums[enumMap[p]]){ var se=mkSelect(DATA.enums[enumMap[p]],seg.value);
+    bindLive(se,seg,function(){return se.value;}); wrap.appendChild(se); return wrap; }
+  if(p==='minecraft:dimension'){ var sd=mkSelect(DATA.registries.dimension,seg.value); bindLive(sd,seg,function(){return sd.value;}); wrap.appendChild(sd); return wrap; }
+
+  if(p==='minecraft:block_pos'||p==='minecraft:vec3'||p==='minecraft:column_pos'||p==='minecraft:vec2'||p==='minecraft:rotation'){
+    var n=(p==='minecraft:column_pos'||p==='minecraft:vec2'||p==='minecraft:rotation')?2:3;
+    var parts=(seg.value||'').split(/\s+/); var boxes=[];
+    for(var i=0;i<n;i++){ (function(idx){ var b=mkInput(parts[idx]!=null?parts[idx]:'~','coord');
+      boxes.push(b); wrap.appendChild(b);
+      var upd=function(){ seg.value=boxes.map(function(x){return x.value||'~';}).join(' '); updateOutput(); };
+      b.addEventListener('input',upd); })(i); }
+    return wrap;
+  }
+
+  if(p==='minecraft:entity'||p==='minecraft:score_holder'||p==='minecraft:game_profile'){
+    if(seg.selArgs==null){
+      var cur=(seg.value||'@e').trim();
+      if(cur.charAt(0)!=='@'){ seg.selBase='name...'; seg.selName=cur; seg.selArgs=[]; seg.selRaw=''; }
+      else { seg.selBase=cur.split('[')[0]||'@e'; seg.selArgs=[]; seg.selRaw='';
+        var lb=cur.indexOf('['), rb=cur.lastIndexOf(']');
+        if(lb>=0&&rb>lb){ splitTop(cur.slice(lb+1,rb)).forEach(function(pr){ pr=pr.trim(); if(!pr)return;
+          var eq=pr.indexOf('='); if(eq<0){ seg.selRaw+=(seg.selRaw?',':'')+pr; return; }
+          var k=pr.slice(0,eq).trim(), val=pr.slice(eq+1).trim(), neg=false; if(val.charAt(0)==='!'){ neg=true; val=val.slice(1); }
+          if(SELECTOR_ARGS.indexOf(k)>=0) seg.selArgs.push({key:k,val:val,neg:neg});
+          else seg.selRaw+=(seg.selRaw?',':'')+pr;
+        }); }
+      }
+    }
+    var box=document.createElement('div');
+    var r0=document.createElement('div'); r0.className='wrow';
+    var bases=['@p','@a','@e','@r','@s','@n','name...'];
+    var bsel=mkSelect(bases, bases.indexOf(seg.selBase)>=0?seg.selBase:'@e');
+    var nameBox=mkInput(seg.selName||'','grow','player name');
+    r0.appendChild(bsel); r0.appendChild(nameBox); box.appendChild(r0);
+    var rowsWrap=document.createElement('div');
+    var addWrap=document.createElement('div'); addWrap.className='wrow'; addWrap.style.marginTop='4px';
+    function selValInput(a){
+      if(a.key==='type'){ var dl=ensureDatalist('entity_type'); var i=mkInput(a.val||'','grow','entity'); if(dl)i.setAttribute('list',dl); i.addEventListener('input',function(){a.val=i.value;recomputeSel(seg);}); return i; }
+      if(a.key==='gamemode'){ var s=mkSelect(DATA.enums.gamemode,a.val||'survival'); s.addEventListener('change',function(){a.val=s.value;recomputeSel(seg);}); return s; }
+      if(a.key==='sort'){ var s2=mkSelect(DATA.enums.sort,a.val||'nearest'); s2.addEventListener('change',function(){a.val=s2.value;recomputeSel(seg);}); return s2; }
+      var ph={distance:'..5 or 3..8',limit:'1',level:'1..',scores:'{obj=1..}',nbt:'{...}',advancements:'{...}',tag:'mytag',team:'red',name:'Steve',predicate:'namespace:id'}[a.key]||'value';
+      var t=mkInput(a.val||'','grow',ph); t.addEventListener('input',function(){a.val=t.value;recomputeSel(seg);}); return t;
+    }
+    function renderRows(){
+      var isName=seg.selBase==='name...';
+      nameBox.style.display=isName?'':'none'; rowsWrap.style.display=isName?'none':''; addWrap.style.display=isName?'none':'';
+      rowsWrap.innerHTML='';
+      (seg.selArgs||[]).forEach(function(a,i){ var r=document.createElement('div'); r.className='subrow';
+        var ks=mkSelect(SELECTOR_ARGS,a.key); ks.addEventListener('change',function(){ a.key=ks.value; recomputeSel(seg); renderRows(); });
+        var neg=document.createElement('button'); neg.type='button'; neg.className='fmt'+(a.neg?' on':''); neg.textContent='!'; neg.title='negate (not this)';
+        neg.addEventListener('click',function(){ a.neg=!a.neg; neg.classList.toggle('on',a.neg); recomputeSel(seg); });
+        var x=document.createElement('button'); x.className='xbtn'; x.textContent='\u2715'; x.addEventListener('click',function(){ seg.selArgs.splice(i,1); recomputeSel(seg); renderRows(); });
+        r.appendChild(ks); r.appendChild(selValInput(a)); r.appendChild(neg); r.appendChild(x); rowsWrap.appendChild(r);
+      });
+    }
+    box.appendChild(rowsWrap);
+    var akey=mkSelect(['+ add filter'].concat(SELECTOR_ARGS),'+ add filter');
+    akey.addEventListener('change',function(){ if(akey.value==='+ add filter')return; seg.selArgs.push({key:akey.value,val:'',neg:false}); akey.value='+ add filter'; recomputeSel(seg); renderRows(); });
+    addWrap.appendChild(akey); box.appendChild(addWrap);
+    var rr=document.createElement('div'); rr.className='wrow';
+    var rraw=mkInput(seg.selRaw||'','grow','extra raw filters (optional)'); rraw.addEventListener('input',function(){ seg.selRaw=rraw.value; recomputeSel(seg); });
+    rr.appendChild(lbl('raw')); rr.appendChild(rraw); box.appendChild(rr);
+    bsel.addEventListener('change',function(){ seg.selBase=bsel.value; recomputeSel(seg); renderRows(); });
+    nameBox.addEventListener('input',function(){ seg.selName=nameBox.value; recomputeSel(seg); });
+    renderRows(); recomputeSel(seg);
+    return box;
+  }
+
+  if(p==='minecraft:item_stack'){ return itemStackWidget(seg); }
+
+  if(p==='minecraft:block_state'||p==='minecraft:block_predicate'){
+    if(seg.block==null){ var v0=seg.value||'stone'; seg.block=v0.split('[')[0].split('{')[0].replace(/^minecraft:/,'')||'stone';
+      var mS=v0.match(/\[[^\]]*\]/); seg.states=mS?mS[0]:'';
+      var mB=v0.match(/\{[\s\S]*\}$/);
+      if(mB){ var be=parseBlockEntity(mB[0].replace(/^\{/,'').replace(/\}$/,'')); seg.slots=be.slots; seg.beRaw=be.raw; }
+      else { seg.slots=seg.slots||[]; seg.beRaw=''; }
+    }
+    var box=document.createElement('div');
+    var r1=document.createElement('div'); r1.className='wrow';
+    var dlb=ensureDatalist('block'); var bi=mkInput(seg.block,'grow','block'); if(dlb)bi.setAttribute('list',dlb);
+    r1.appendChild(bi); box.appendChild(r1);
+
+    if(seg.stateVals==null){ seg.stateVals={}; var mm=(seg.states||'').match(/\[([^\]]*)\]/);
+      if(mm){ splitTop(mm[1]).forEach(function(pr){ var i=pr.indexOf('='); if(i>0) seg.stateVals[pr.slice(0,i).trim()]=pr.slice(i+1).trim(); }); } }
+    var stWrap=document.createElement('div'); stWrap.className='wrow';
+    function buildStates(){ var ks=Object.keys(seg.stateVals).filter(function(k){ var v=seg.stateVals[k]; return v!=null&&v!==''&&v!=='(any)'; });
+      seg.states = ks.length ? '['+ks.map(function(k){ return k+'='+seg.stateVals[k]; }).join(',')+']' : ''; recomputeBlock(seg); }
+    function renderStates(){ stWrap.innerHTML=''; var defs=DATA.block_states[seg.block];
+      if(defs){ Object.keys(defs).forEach(function(prop){ var opts=['(any)'].concat(defs[prop]); var cur=seg.stateVals[prop]||'(any)';
+        var s=mkSelect(opts, opts.indexOf(cur)>=0?cur:'(any)'); s.title=prop;
+        s.addEventListener('change',function(){ seg.stateVals[prop]=(s.value==='(any)')?'':s.value; buildStates(); });
+        stWrap.appendChild(lbl(prop)); stWrap.appendChild(s);
+      }); }
+      else { var t=mkInput(seg.states||'','grow','[facing=north]  (states, optional)'); t.addEventListener('input',function(){ seg.states=t.value; recomputeBlock(seg); }); stWrap.appendChild(t); }
+    }
+    bi.addEventListener('input',function(){ seg.block=bi.value; seg.stateVals={}; seg.states=''; renderStates(); recomputeBlock(seg); });
+    box.appendChild(stWrap); renderStates();
+
+    // the chest slots editor
+    var cont=document.createElement('div'); cont.className='rawbox';
+    var chd=document.createElement('div'); chd.className='rawlbl';
+    chd.textContent='chest / barrel / hopper contents. drops items into slots (block-entity Items)';
+    cont.appendChild(chd);
+    var slotWrap=document.createElement('div');
+    function renderSlots(){
+      slotWrap.innerHTML='';
+      seg.slots.forEach(function(sl,i){
+        var sc=document.createElement('div'); sc.className='comp';
+        var sh=document.createElement('div'); sh.className='compHead';
+        var snm=document.createElement('span'); snm.className='compName'; snm.style.cursor='pointer';
+        snm.textContent=(sl.open?'\u25be ':'\u25b8 ')+'slot '+sl.slot+' : '+((sl.item&&sl.item.value)||'empty');
+        snm.addEventListener('click',function(){ sl.open=!sl.open; renderSlots(); });
+        var sx=document.createElement('button'); sx.className='xbtn'; sx.textContent='\u2715';
+        sx.addEventListener('click',function(){ seg.slots.splice(i,1); recomputeBlock(seg); renderSlots(); });
+        sh.appendChild(snm); sh.appendChild(sx); sc.appendChild(sh);
+        if(sl.open){
+          var sr=document.createElement('div'); sr.className='subrow';
+          var snum=mkInput(sl.slot,'num'); snum.type='number'; snum.min=0;
+          snum.addEventListener('input',function(){ sl.slot=parseInt(snum.value)||0; recomputeBlock(seg); });
+          sr.appendChild(lbl('slot #')); sr.appendChild(snum); sc.appendChild(sr);
+          if(!sl.item) sl.item={value:'diamond',item:'diamond',comps:[],raw:'',openComp:-1};
+          sl.item._onchange=function(){ recomputeBlock(seg); renderSlotHeader(); };
+          sc.appendChild(itemStackWidget(sl.item));
+          function renderSlotHeader(){ snm.textContent=(sl.open?'\u25be ':'\u25b8 ')+'slot '+sl.slot+' : '+((sl.item&&sl.item.value)||'empty'); }
+        }
+        slotWrap.appendChild(sc);
+      });
+      var addS=document.createElement('button'); addS.className='btn chip'; addS.textContent='+ item slot';
+      addS.addEventListener('click',function(){
+        var used=seg.slots.map(function(s){return s.slot;}); var n=0; while(used.indexOf(n)>=0)n++;
+        seg.slots.push({slot:n,open:true,item:{value:'diamond',item:'diamond',comps:[],raw:'',openComp:-1}});
+        recomputeBlock(seg); renderSlots();
+      });
+      slotWrap.appendChild(addS);
+    }
+    renderSlots(); cont.appendChild(slotWrap); box.appendChild(cont);
+
+    // raw block-entity nbt for anything the slots editor doesnt cover
+    var rb=document.createElement('div'); rb.className='rawbox';
+    var rl=document.createElement('div'); rl.className='rawlbl'; rl.textContent='raw block-entity nbt. anything else goes here, no outer braces';
+    var rt=document.createElement('textarea'); rt.value=seg.beRaw||''; rt.placeholder='e.g. CustomName:\'{"text":"Loot"}\'';
+    rt.addEventListener('input',function(){ seg.beRaw=rt.value; recomputeBlock(seg); });
+    rb.appendChild(rl); rb.appendChild(rt); box.appendChild(rb);
+
+    recomputeBlock(seg);
+    return box;
+  }
+
+  var rk=regKeyFor(p,props);
+  if(!rk){
+    if(p==='minecraft:particle') rk='particle_type';
+    else if(p==='minecraft:item_predicate') rk='item';
+    else if(p==='minecraft:mob_effect') rk='mob_effect';
+  }
+  if(rk && DATA.registries[rk]){
+    var dl=ensureDatalist(rk); var ri=mkInput(seg.value,'grow', rk.replace('_',' '));
+    if(dl)ri.setAttribute('list',dl); bindLive(ri,seg,function(){return ri.value;});
+    wrap.appendChild(ri);
+    if(p==='minecraft:particle'){ var extra=mkInput('','grow','extra data (optional)');
+      extra.addEventListener('input',function(){ seg.value=ri.value+(extra.value?' '+extra.value:''); updateOutput(); });
+      wrap.appendChild(extra); }
+    return wrap;
+  }
+  // resource that we dont have a list for (datapack stuff like advancements/recipes). just a text box
+  if(p==='minecraft:resource'||p==='minecraft:resource_key'||p==='minecraft:resource_or_tag'||p==='minecraft:resource_or_tag_key'||p==='minecraft:resource_selector'){
+    var rn=(props.registry||'').replace('minecraft:','');
+    var rr=mkInput(seg.value,'grow', rn?('namespace:path  ('+rn+')'):'namespace:path');
+    bindLive(rr,seg,function(){return rr.value;}); wrap.appendChild(rr); return wrap;
+  }
+
+  if(p==='minecraft:time'){ var tn=mkInput((seg.value||'20').replace(/[a-z]/i,''),'num'); tn.type='number';
+    var tu=mkSelect(['(ticks)','s','d'], '(ticks)');
+    function trc(){ var u=tu.value==='(ticks)'?'':tu.value; seg.value=(tn.value||'0')+u; updateOutput(); }
+    tn.addEventListener('input',trc); tu.addEventListener('change',trc);
+    wrap.appendChild(tn); wrap.appendChild(tu); return wrap;
+  }
+
+  if(p==='minecraft:nbt_compound_tag'||p==='minecraft:nbt_tag'){
+    if(!seg.nbtRoot){
+      var parsed=null; try{ parsed=parseSNBT(seg.value||'{}'); }catch(e){}
+      if(parsed && parsed.type==='compound'){ seg.nbtRoot=parsed; seg.nbtRaw=''; }
+      else { seg.nbtRoot={type:'compound',entries:[]}; seg.nbtRaw=(seg.value&&seg.value!=='{}')?seg.value:''; }
+    }
+    var nb=document.createElement('div');
+    function recompNbt(){ seg.value = (seg.nbtRaw&&seg.nbtRaw.trim()) ? seg.nbtRaw.trim() : snbtOf(seg.nbtRoot); updateOutput(); }
+    nb.appendChild(nbtNodeEditor(seg.nbtRoot,recompNbt));
+    var rbx=document.createElement('div'); rbx.className='rawbox';
+    var rlx=document.createElement('div'); rlx.className='rawlbl'; rlx.textContent='or paste raw snbt here, it overrides the tree above';
+    var rtx=document.createElement('textarea'); rtx.value=seg.nbtRaw||''; rtx.placeholder='{CustomName:\'{"text":"Bob"}\',NoAI:1b}';
+    rtx.addEventListener('input',function(){ seg.nbtRaw=rtx.value; recompNbt(); });
+    rbx.appendChild(rlx); rbx.appendChild(rtx); nb.appendChild(rbx);
+    recompNbt(); wrap.appendChild(nb); return wrap;
+  }
+  if(p==='minecraft:style'){
+    var ta=document.createElement('textarea'); ta.value=seg.value||'{}';
+    ta.placeholder='snbt, e.g. {bold:true,color:"gold"}';
+    bindLive(ta,seg,function(){return ta.value;}); wrap.appendChild(ta); return wrap;
+  }
+  if(p==='minecraft:component'){
+    if(!seg.tc){
+      var iv=(seg.value||'').trim(), parsed=null;
+      try{ parsed=JSON.parse(iv); }catch(e){}
+      if(typeof parsed==='string'){ seg.tc={text:parsed,color:'white'}; seg.rawc=''; }
+      else if(parsed && typeof parsed==='object' && !Array.isArray(parsed) && ('text' in parsed)){
+        seg.tc={text:'',color:'white'}; applyTextObj(seg.tc,parsed); seg.rawc='';
+      } else if(iv && iv!=='"Hello"'){ seg.tc={text:'Hello',color:'white'}; seg.rawc=iv; }
+      else { seg.tc={text:'Hello',color:'white'}; seg.rawc=''; }
+    }
+    var cbox=document.createElement('div');
+    function recompC(){ seg.value = (seg.rawc&&seg.rawc.trim()) ? seg.rawc.trim() : styleJSON(seg.tc); updateOutput(); }
+    cbox.appendChild(textCompEditor(seg.tc,recompC));
+    var rb2=document.createElement('div'); rb2.className='rawbox';
+    var rl2=document.createElement('div'); rl2.className='rawlbl'; rl2.textContent='or paste raw json here, it overrides the editor above. good for arrays, hover and click events, and so on';
+    var rt2=document.createElement('textarea'); rt2.value=seg.rawc||''; rt2.placeholder='["hi ",{"text":"there","color":"gold","bold":true}]';
+    rt2.addEventListener('input',function(){ seg.rawc=rt2.value; recompC(); });
+    rb2.appendChild(rl2); rb2.appendChild(rt2); cbox.appendChild(rb2);
+    recompC();
+    wrap.appendChild(cbox); return wrap;
+  }
+  if(p==='minecraft:hex_color'){ var hc=mkInput(seg.value||'ffffff','grow','ffffff'); bindLive(hc,seg,function(){return hc.value;}); wrap.appendChild(hc); return wrap; }
+
+  var ph=({'minecraft:nbt_path':'e.g. Inventory[0].id','minecraft:message':'message text',
+    'minecraft:int_range':'1..5','minecraft:float_range':'0.5..2','minecraft:objective':'objective',
+    'minecraft:loot_table':'namespace:path','minecraft:function':'namespace:path','minecraft:uuid':'uuid'})[p] || p.replace('minecraft:','');
+  var gi=mkInput(seg.value,'grow',ph); bindLive(gi,seg,function(){return gi.value;}); wrap.appendChild(gi); return wrap;
+}
+
+// the big item editor. item id + the friendly component editors + a raw box for the rest
+function jstr(s){ return '"'+String(s).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"'; }
+function jtext(text,color){ var o='{"text":'+jstr(text); if(color)o+=',"color":'+jstr(color); return o+'}'; }
+var TEXT_COLORS=['','black','dark_blue','dark_green','dark_aqua','dark_red','dark_purple','gold','gray','dark_gray','blue','green','aqua','red','light_purple','yellow','white'];
+
+// text editor, same idea as the text-display page. one style for the whole string, spits out json
+var MC_HEX={black:'#000000',dark_blue:'#0000AA',dark_green:'#00AA00',dark_aqua:'#00AAAA',dark_red:'#AA0000',
+  dark_purple:'#AA00AA',gold:'#FFAA00',gray:'#AAAAAA',dark_gray:'#555555',blue:'#5555FF',green:'#55FF55',
+  aqua:'#55FFFF',red:'#FF5555',light_purple:'#FF55FF',yellow:'#FFFF55',white:'#FFFFFF'};
+var COLOR_NAMES=['white','black','dark_blue','dark_green','dark_aqua','dark_red','dark_purple','gold','gray','dark_gray','blue','green','aqua','red','light_purple','yellow'];
+function styleJSON(c){
+  var o='{"text":'+jstr(c.text||'');
+  if(c.color && c.color!=='white') o+=',"color":'+jstr(c.color);
+  ['bold','italic','underline','strikethrough','obfuscated'].forEach(function(k){ if(c[k]) o+=',"'+k+'":true'; });
+  return o+'}';
+}
+var OBF_CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789?#@%&';
+function colorOf(c){ if(!c)return '#FFFFFF'; if(c.charAt(0)==='#')return c; return MC_HEX[c]||'#FFFFFF'; }
+function drawPreview(cv,c){
+  var ctx=cv.getContext&&cv.getContext('2d'); if(!ctx)return;
+  ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height);
+  var col=colorOf(c.color), raw=c.text||'', x=6,y=7, t=raw;
+  if(c.obfuscated){ t=''; for(var i=0;i<raw.length;i++){ t+=(raw.charAt(i)===' ')?' ':OBF_CHARS.charAt((Math.random()*OBF_CHARS.length)|0); } }
+  ctx.textBaseline='top';
+  ctx.font=(c.italic?'italic ':'')+(c.bold?'bold ':'')+'18px "MinecraftTTF","VT323",monospace';
+  ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillText(t,x+2,y+2);
+  ctx.fillStyle=col; ctx.fillText(t,x,y);
+  var w=ctx.measureText?ctx.measureText(t).width:0;
+  if(c.underline)ctx.fillRect(x,y+18,w,2);
+  if(c.strikethrough)ctx.fillRect(x,y+9,w,2);
+  if(c.obfuscated && cv.isConnected!==false){ setTimeout(function(){ if(cv.isConnected!==false) drawPreview(cv,c); },90); }
+}
+function textCompEditor(c,onchange,ph){
+  if(c.color==null)c.color='white';
+  var box=document.createElement('div');
+  var r1=document.createElement('div'); r1.className='wrow';
+  var ti=mkInput(c.text||'','grow',ph||'text');
+  ti.addEventListener('input',function(){ c.text=ti.value; upd(); });
+  r1.appendChild(ti);
+  [['B','bold'],['I','italic'],['U','underline'],['S','strikethrough'],['K','obfuscated']].forEach(function(pr){
+    var b=document.createElement('button'); b.type='button'; b.className='fmt'+(c[pr[1]]?' on':''); b.textContent=pr[0]; b.title=pr[1];
+    b.addEventListener('click',function(){ c[pr[1]]=!c[pr[1]]; b.classList.toggle('on',!!c[pr[1]]); upd(); });
+    r1.appendChild(b);
+  });
+  box.appendChild(r1);
+  var r2=document.createElement('div'); r2.className='wrow';
+  var cs=mkSelect(COLOR_NAMES,(c.color&&c.color.charAt(0)!=='#')?c.color:'white');
+  var hx=document.createElement('input'); hx.type='color'; hx.className='hexpick';
+  hx.value=(c.color&&c.color.charAt(0)==='#')?c.color:(MC_HEX[c.color]||'#ffffff');
+  cs.addEventListener('change',function(){ c.color=cs.value; hx.value=MC_HEX[cs.value]||'#ffffff'; upd(); });
+  hx.addEventListener('input',function(){ c.color=hx.value.toLowerCase(); upd(); });
+  r2.appendChild(lbl('color')); r2.appendChild(cs); r2.appendChild(lbl('or hex')); r2.appendChild(hx); box.appendChild(r2);
+  var cv=document.createElement('canvas'); cv.className='cprev'; cv.width=320; cv.height=32; box.appendChild(cv);
+  function upd(){ drawPreview(cv,c); onchange(); }
+  setTimeout(function(){ drawPreview(cv,c); },0);
+  return box;
+}
+
+var FLAG_COMPS={glider:1,intangible_projectile:1,creative_slot_lock:1};
+var COMP_SCHEMA={
+  food:{fields:[['nutrition','int',4],['saturation','float',0.3],['can_always_eat','bool',false]]},
+  consumable:{fields:[['consume_seconds','float',1.6],['animation','enum',['eat','drink','none','block','bow','spear','crossbow','spyglass','toot_horn','brush'],'eat']]},
+  use_cooldown:{fields:[['seconds','float',1],['cooldown_group','text','']]},
+  enchantable:{fields:[['value','int',1]]},
+  repairable:{fields:[['items','idtag','#minecraft:planks',{reg:'item',tags:'item_tag'}]]},
+  damage_resistant:{fields:[['types','idtag','#minecraft:is_fire',{reg:'damage_type',tags:'damage_type_tag'}]]},
+  weapon:{fields:[['item_damage_per_attack','int',1],['disable_blocking_for_seconds','float',0]]},
+  tool:{fields:[['default_mining_speed','float',1],['damage_per_block','int',1],['can_destroy_blocks_in_creative','bool',true],
+    ['rules','list',[['blocks','idtag','#minecraft:mineable/pickaxe',{reg:'block',tags:'block_tag'}],['speed','float',1],['correct_for_drops','bool',true]]]]},
+  equippable:{fields:[['slot','enum',['head','chest','legs','feet','body','mainhand','offhand'],'head'],['equip_sound','id','',{reg:'sound_event'}],['asset_id','text','']]},
+  map_color:{single:'int',def:0},
+  repair_cost:{single:'int',def:0},
+  ominous_bottle_amplifier:{single:'int',def:0},
+  potion_duration_scale:{single:'float',def:1},
+  item_model:{single:'id',def:''},
+  note_block_sound:{single:'id',def:'minecraft:block.note_block.harp',reg:'sound_event'},
+  jukebox_playable:{single:'id',def:''},
+  tooltip_style:{single:'id',def:''},
+  damage_type:{single:'id',def:'minecraft:player_attack',reg:'damage_type'},
+  minimum_attack_charge:{single:'float',def:0},
+  map_id:{single:'int',def:0},
+  provides_trim_material:{single:'id',def:''},
+  attack_range:{fields:[['min_reach','float',0],['max_reach','float',3],['hitbox_margin','float',0.3],['min_creative_reach','float',0],['max_creative_reach','float',5],['mob_factor','float',1]]},
+  use_effects:{fields:[['can_sprint','bool',false],['speed_multiplier','float',0.2]]},
+  blocks_attacks:{fields:[
+    ['block_delay_seconds','float',0],
+    ['disable_cooldown_scale','float',1],
+    ['bypassed_by','idtag','',{reg:'damage_type',tags:'damage_type_tag'}],
+    ['damage_reductions','list',[['type','idtag','#minecraft:is_fire',{reg:'damage_type',tags:'damage_type_tag'}],['base','float',0],['factor','float',1],['horizontal_blocking_angle','float',90]]],
+    ['item_damage','compound',[['threshold','float',1],['base','float',0],['factor','float',1]]]
+  ]},
+  trim:{fields:[['material','id','minecraft:iron'],['pattern','id','minecraft:coast']]},
+  suspicious_stew_effects:{list:[['id','id','minecraft:night_vision',{reg:'mob_effect'}],['duration','int',160]]},
+  banner_patterns:{list:[['pattern','id','minecraft:stripe_top'],['color','enum',['white','orange','magenta','light_blue','yellow','lime','pink','gray','light_gray','cyan','purple','blue','brown','green','red','black'],'red']]},
+  firework_explosion:{fields:[['shape','enum',['small_ball','large_ball','star','creeper','burst'],'small_ball'],['colors','raw','[I;16711680]'],['fade_colors','raw','[I;]'],['has_trail','bool',false],['has_twinkle','bool',false]]},
+  fireworks:{fields:[['flight_duration','int',1],['explosions','list',[['shape','enum',['small_ball','large_ball','star','creeper','burst'],'small_ball'],['colors','raw','[I;16711680]'],['has_trail','bool',false],['has_twinkle','bool',false]]]]}
+};
+// components whose value is a LIST (default [] not {}), and starter templates for the fiddly ones
+var COMP_LIST={container:1,bundle_contents:1,charged_projectiles:1,banner_patterns:1,pot_decorations:1,recipes:1,suspicious_stew_effects:1};
+var COMP_DEFAULTS={
+  container:'[{slot:0,item:{id:"minecraft:stone",count:1}}]',
+  bundle_contents:'[{id:"minecraft:stone",count:1}]',
+  charged_projectiles:'[{id:"minecraft:arrow",count:1}]',
+  lock:'"my_key"'
+};
+function fmtVal(ty,v){
+  if(ty==='int')return String(parseInt(v,10)||0);
+  if(ty==='float')return String(v===''||v==null?0:v);
+  if(ty==='bool')return v?'true':'false';
+  return '"'+String(v==null?'':v).replace(/"/g,'\\"')+'"';
+}
+function serializeField(f,val){
+  var ty=f[1];
+  if(ty==='compound') return serializeFields(f[2], val||{});
+  if(ty==='list'){ return '['+(val||[]).map(function(iv){ return serializeFields(f[2], iv||{}); }).join(',')+']'; }
+  if(ty==='raw') return (val==null||val==='')?f[2]:String(val);
+  if(ty==='idtag'){ var v=(val==null||val==='')?f[2]:val; v=String(v).trim(); return (v.charAt(0)==='[')?v:fmtVal('text',v); }
+  if(val==null||val==='') val=(ty==='enum'?f[3]:f[2]);
+  return fmtVal((ty==='id'||ty==='enum')?'text':ty, val);
+}
+function serializeFields(fields,store){
+  var out=[];
+  fields.forEach(function(f){ var ty=f[1], val=store?store[f[0]]:null;
+    if((ty==='text'||ty==='id'||ty==='raw'||ty==='idtag') && (val==null||val==='') && (f[2]==null||f[2]==='')) return;
+    out.push(f[0]+':'+serializeField(f,val));
+  });
+  return '{'+out.join(',')+'}';
+}
+function isFlatSchema(sc){ if(sc.single)return true; if(sc.list)return false; return sc.fields.every(function(f){ return f[1]!=='compound' && f[1]!=='list'; }); }
+function schemaValue(sn,c){
+  var sc=COMP_SCHEMA[sn]; c.f=c.f||{};
+  if(sc.single){ var v=(c.f.v!=null&&c.f.v!=='')?c.f.v:sc.def; return sn+'='+fmtVal(sc.single==='id'?'text':sc.single,v); }
+  if(sc.list){ c.f.items=c.f.items||[]; return sn+'=['+c.f.items.map(function(it){ return serializeFields(sc.list,it); }).join(',')+']'; }
+  return sn+'='+serializeFields(sc.fields,c.f);
+}
+// draws the friendly fields for a component, dips into nested compounds n lists
+function renderSchemaFields(fields,store,onchange){
+  var frag=document.createElement('div');
+  fields.forEach(function(f){ frag.appendChild(renderSchemaField(f,store,onchange)); });
+  return frag;
+}
+function renderSchemaField(f,store,onchange){
+  var key=f[0], ty=f[1];
+  if(ty==='compound'){
+    store[key]=store[key]||{};
+    var box=document.createElement('div'); box.className='subgroup';
+    var h=document.createElement('div'); h.className='subhead'; h.textContent=key; box.appendChild(h);
+    box.appendChild(renderSchemaFields(f[2],store[key],onchange)); return box;
+  }
+  if(ty==='list'){
+    store[key]=store[key]||[];
+    var box=document.createElement('div'); box.className='subgroup';
+    var h=document.createElement('div'); h.className='subhead'; h.textContent=key; box.appendChild(h);
+    var lw=document.createElement('div');
+    function renderList(){
+      lw.innerHTML='';
+      store[key].forEach(function(item,i){ var ic=document.createElement('div'); ic.className='listitem';
+        var xr=document.createElement('div'); xr.className='wrow'; var x=document.createElement('button'); x.className='xbtn'; x.textContent='\u2715';
+        x.addEventListener('click',function(){ store[key].splice(i,1); onchange(); renderList(); });
+        xr.appendChild(lbl(key+' '+(i+1))); xr.appendChild(x); ic.appendChild(xr);
+        ic.appendChild(renderSchemaFields(f[2],item,onchange)); lw.appendChild(ic);
+      });
+      var add=document.createElement('button'); add.className='btn chip'; add.textContent='+ '+key;
+      add.addEventListener('click',function(){ store[key].push({}); onchange(); renderList(); }); lw.appendChild(add);
+    }
+    renderList(); box.appendChild(lw); return box;
+  }
+  var cur=store[key]; if(cur==null)cur=(ty==='enum'?f[3]:f[2]);
+  var r=document.createElement('div'); r.className='subrow'; var el;
+  if(ty==='bool'){ el=mkSelect(['true','false'], cur?'true':'false'); el.addEventListener('change',function(){ store[key]=(el.value==='true'); onchange(); }); }
+  else if(ty==='enum'){ el=mkSelect(f[2], cur); el.addEventListener('change',function(){ store[key]=el.value; onchange(); }); }
+  else if(ty==='id' && f[3] && f[3].reg && DATA.registries[f[3].reg]){ var dl=ensureDatalist(f[3].reg); el=mkInput(cur,'grow',f[3].reg.replace('_',' ')); if(dl)el.setAttribute('list',dl); el.addEventListener('input',function(){ store[key]=el.value; onchange(); }); }
+  else if(ty==='raw'){ el=mkInput(cur,'grow','SNBT, e.g. [I;16711680]'); el.addEventListener('input',function(){ store[key]=el.value; onchange(); }); }
+  else if(ty==='idtag'){ var o=f[3]||{}; var dl=comboDatalist(o.reg,o.tags); el=mkInput(cur,'grow','id, #tag, or ["a","b"]'); if(dl)el.setAttribute('list',dl); el.addEventListener('input',function(){ store[key]=el.value; onchange(); }); }
+  else { var isn=(ty==='int'||ty==='float'); el=mkInput(cur, isn?'num':'grow'); if(isn)el.type='number'; if(ty==='float')el.step='any';
+    if(isn&&FIELD_MIN[key]!=null){ el.min=FIELD_MIN[key]; el.addEventListener('input',function(){ var raw=parseFloat(el.value); if(!isNaN(raw)&&raw<FIELD_MIN[key])el.value=FIELD_MIN[key]; store[key]=el.value; onchange(); }); }
+    else el.addEventListener('input',function(){ store[key]=el.value; onchange(); }); }
+  r.appendChild(lbl(key)); r.appendChild(el); return r;
+}
+function compValue(c){
+  var t=c.type;
+  switch(t){
+    case 'minecraft:custom_name': case 'minecraft:item_name':
+      return t.split(':')[1]+"='"+styleJSON(c)+"'";
+    case 'minecraft:lore':
+      return "lore=["+(c.lines||[]).map(function(l){return "'"+styleJSON(l)+"'";}).join(',')+"]";
+    case 'minecraft:enchantments': case 'minecraft:stored_enchantments':
+      return t.split(':')[1]+"={"+(c.list||[]).map(function(e){return '"minecraft:'+e.id+'":'+(e.lvl||1);}).join(',')+"}";
+    case 'minecraft:attribute_modifiers':
+      return "attribute_modifiers=["+(c.list||[]).map(function(a,i){
+        return '{"type":"minecraft:'+a.id+'","amount":'+(a.amount||0)+',"operation":"'+(a.op||'add_value')+'","slot":"'+(a.slot||'any')+'","id":"minecraft:mod_'+i+'"}';
+      }).join(',')+"]";
+    case 'minecraft:damage': case 'minecraft:max_damage': case 'minecraft:max_stack_size':
+    case 'minecraft:custom_model_data': case 'minecraft:dyed_color':
+      return t.split(':')[1]+'='+(c.num||0);
+    case 'minecraft:unbreakable': return 'unbreakable={}';
+    case 'minecraft:enchantment_glint_override': case 'minecraft:hide_additional_tooltip':
+    case 'minecraft:fire_resistant':
+      return t.split(':')[1]+'='+(c.bool||'true');
+    case 'minecraft:rarity': return 'rarity='+(c.val||'common');
+    case 'minecraft:potion_contents': return 'potion_contents={"potion":"minecraft:'+(c.val||'')+'"}';
+    case 'minecraft:custom_data': return 'custom_data='+(c.raw||'{}');
+    default:
+      var sn=t.replace('minecraft:','');
+      if(FLAG_COMPS[sn]) return sn+'={}';
+      if(COMP_SCHEMA[sn]) return schemaValue(sn,c);
+      return t+'='+(c.raw || (COMP_LIST[sn]?'[]':'{}'));
+  }
+}
+var SELECTOR_ARGS=['type','distance','limit','sort','x','y','z','dx','dy','dz','x_rotation','y_rotation','level','gamemode','name','team','tag','scores','advancements','predicate','nbt'];
+function recomputeSel(seg){
+  if(seg.selBase==='name...'){ seg.value=seg.selName||'Steve'; updateOutput(); return; }
+  var parts=(seg.selArgs||[]).filter(function(a){return a.key;}).map(function(a){ return a.key+'='+(a.neg?'!':'')+(a.val==null?'':a.val); });
+  if(seg.selRaw && seg.selRaw.trim()) parts.push(seg.selRaw.trim());
+  seg.value=(seg.selBase||'@e')+(parts.length?'['+parts.join(',')+']':'');
+  updateOutput();
+}
+// the nbt tree editor. spits out snbt, n a lil parser to read it back in on import
+var NBT_TYPES=['string','int','float','double','byte','short','long','bool','compound','list'];
+function nbtDefault(t){ if(t==='compound')return {type:'compound',entries:[]}; if(t==='list')return {type:'list',items:[]};
+  if(t==='bool')return {type:'bool',val:true}; return {type:t||'string',val:(t&&t!=='string')?0:''}; }
+function snbtOf(n){ if(!n)return '{}';
+  switch(n.type){
+    case 'compound': return '{'+(n.entries||[]).map(function(e){return (e.key||'key')+':'+snbtOf(e.node);}).join(',')+'}';
+    case 'list': return '['+(n.arrPrefix?(n.arrPrefix+';'):'')+(n.items||[]).map(snbtOf).join(',')+']';
+    case 'string': return jstr(n.val||'');
+    case 'bool': return (n.val?'1':'0')+'b';
+    case 'byte': return (parseInt(n.val,10)||0)+'b';
+    case 'short': return (parseInt(n.val,10)||0)+'s';
+    case 'long': return (parseInt(n.val,10)||0)+'L';
+    case 'int': return String(parseInt(n.val,10)||0);
+    case 'float': return (n.val===''||n.val==null?0:n.val)+'f';
+    case 'double': return (n.val===''||n.val==null?0:n.val)+'d';
+  }
+  return '{}';
+}
+function parseSNBT(str){
+  var s=String(str||'').trim(), i=0;
+  function ws(){ while(i<s.length && /\s/.test(s.charAt(i)))i++; }
+  function quoted(){ var q=s.charAt(i++); var o=''; while(i<s.length && s.charAt(i)!==q){ if(s.charAt(i)==='\\'){ o+=s.charAt(i+1); i+=2; } else o+=s.charAt(i++); } i++; return o; }
+  function value(){ ws(); var c=s.charAt(i);
+    if(c==='{')return compound(); if(c==='[')return listOrArray();
+    if(c==='"'||c==="'")return {type:'string',val:quoted()}; return scalar(); }
+  function compound(){ i++; var n={type:'compound',entries:[]}; ws(); if(s.charAt(i)==='}'){i++;return n;}
+    while(i<s.length){ ws(); var key; if(s.charAt(i)==='"'||s.charAt(i)==="'")key=quoted(); else { var st=i; while(i<s.length && s.charAt(i)!==':')i++; key=s.slice(st,i).trim(); }
+      ws(); if(s.charAt(i)===':')i++; var v=value(); n.entries.push({key:key,node:v}); ws();
+      if(s.charAt(i)===','){i++;continue;} if(s.charAt(i)==='}'){i++;break;} break; } return n; }
+  function listOrArray(){ i++; ws(); var pref=null;
+    if(/[BILbil]/.test(s.charAt(i)) && s.charAt(i+1)===';'){ pref=s.charAt(i).toUpperCase(); i+=2; }
+    var n={type:'list',items:[]}; if(pref)n.arrPrefix=pref; ws(); if(s.charAt(i)===']'){i++;return n;}
+    while(i<s.length){ var v=value(); n.items.push(v); ws(); if(s.charAt(i)===','){i++;continue;} if(s.charAt(i)===']'){i++;break;} break; } return n; }
+  function scalar(){ var st=i; while(i<s.length && ',]}'.indexOf(s.charAt(i))<0 && !/\s/.test(s.charAt(i)))i++; var tok=s.slice(st,i).trim();
+    var m=tok.match(/^(-?\d+)([bslBSL])$/); if(m){ var f=m[2].toLowerCase(); return {type:f==='b'?'byte':f==='s'?'short':'long', val:m[1]}; }
+    var mf=tok.match(/^(-?\d*\.?\d+)([fdFD])$/); if(mf){ return {type:mf[2].toLowerCase()==='f'?'float':'double', val:mf[1]}; }
+    if(/^-?\d+$/.test(tok)) return {type:'int',val:tok};
+    if(/^-?\d*\.\d+$/.test(tok)) return {type:'double',val:tok};
+    if(tok==='true'||tok==='false') return {type:'bool',val:tok==='true'};
+    return {type:'string',val:tok}; }
+  var r=value(); return r;
+}
+function nbtNodeEditor(node,onchange){
+  var box=document.createElement('div'); box.className='nbtnode';
+  var head=document.createElement('div'); head.className='wrow';
+  var ts=mkSelect(NBT_TYPES,node.type); ts.style.width='96px';
+  var valHolder=document.createElement('span'); valHolder.style.flex='1 1 auto';
+  head.appendChild(ts); head.appendChild(valHolder); box.appendChild(head);
+  var childHolder=document.createElement('div'); childHolder.className='nbtchildren'; box.appendChild(childHolder);
+  ts.addEventListener('change',function(){ var d=nbtDefault(ts.value); node.type=d.type; node.val=d.val; node.entries=d.entries; node.items=d.items; delete node.arrPrefix; onchange(); rebuild(); });
+  function rebuild(){
+    valHolder.innerHTML=''; childHolder.innerHTML='';
+    if(node.type==='compound'){
+      node.entries=node.entries||[];
+      node.entries.forEach(function(e,i){ var r=document.createElement('div'); r.className='nbtrow';
+        var kr=document.createElement('div'); kr.className='wrow';
+        var ki=mkInput(e.key||'','','key'); ki.style.width='96px'; ki.addEventListener('input',function(){ e.key=ki.value; onchange(); });
+        var x=document.createElement('button'); x.className='xbtn'; x.textContent='\u2715'; x.addEventListener('click',function(){ node.entries.splice(i,1); onchange(); rebuild(); });
+        kr.appendChild(ki); kr.appendChild(x); r.appendChild(kr);
+        e.node=e.node||nbtDefault('string'); r.appendChild(nbtNodeEditor(e.node,onchange)); childHolder.appendChild(r);
+      });
+      var add=document.createElement('button'); add.className='btn chip'; add.textContent='+ key';
+      add.addEventListener('click',function(){ node.entries.push({key:'key'+node.entries.length,node:nbtDefault('string')}); onchange(); rebuild(); });
+      childHolder.appendChild(add);
+    } else if(node.type==='list'){
+      node.items=node.items||[];
+      node.items.forEach(function(it,i){ var r=document.createElement('div'); r.className='nbtrow';
+        var xr=document.createElement('div'); xr.className='wrow'; var x=document.createElement('button'); x.className='xbtn'; x.textContent='\u2715';
+        x.addEventListener('click',function(){ node.items.splice(i,1); onchange(); rebuild(); });
+        xr.appendChild(lbl('item '+i)); xr.appendChild(x); r.appendChild(xr);
+        r.appendChild(nbtNodeEditor(it,onchange)); childHolder.appendChild(r);
+      });
+      var add2=document.createElement('button'); add2.className='btn chip'; add2.textContent='+ item';
+      add2.addEventListener('click',function(){ node.items.push(nbtDefault('string')); onchange(); rebuild(); });
+      childHolder.appendChild(add2);
+    } else if(node.type==='bool'){
+      var s=mkSelect(['true','false'], node.val?'true':'false'); s.addEventListener('change',function(){ node.val=(s.value==='true'); onchange(); }); valHolder.appendChild(s);
+    } else {
+      var inp=mkInput(node.val==null?'':node.val,'grow',node.type); inp.addEventListener('input',function(){ node.val=inp.value; onchange(); }); valHolder.appendChild(inp);
+    }
+  }
+  rebuild(); return box;
+}
+function recomputeItem(seg){
+  var inner=(seg.comps||[]).map(compValue).filter(Boolean);
+  if(seg.raw && seg.raw.trim()) inner.push(seg.raw.trim());
+  seg.value=(seg.item||'stone')+(inner.length?'['+inner.join(',')+']':'');
+  if(seg._onchange) seg._onchange(); else updateOutput();
+}
+function recomputeBlock(seg){
+  var v=(seg.block||'stone')+(seg.states||'');
+  var parts=[];
+  if(seg.slots && seg.slots.length){
+    parts.push('Items:['+seg.slots.map(function(sl){ return itemToNbt((sl.item&&sl.item.value)||'stone', sl.slot); }).join(',')+']');
+  }
+  if(seg.beRaw && seg.beRaw.trim()){ var r=stripOuterBraces(seg.beRaw.trim()); if(r)parts.push(r); }
+  if(parts.length) v+='{'+parts.join(',')+'}';
+  seg.value=v; updateOutput();
+}
+// turn a normal item string (id[k=v]) into the block-entity slot form ({Slot,id,count,components})
+function itemToNbt(cmdStr,slot){
+  var s=(cmdStr||'stone').trim();
+  var base=s.split('[')[0].replace('minecraft:','')||'stone';
+  var out='{Slot:'+(slot|0)+'b,id:"minecraft:'+base+'",count:1';
+  var lb=s.indexOf('['), rb=s.lastIndexOf(']');
+  if(lb>=0 && rb>lb){
+    var pairs=splitTop(s.slice(lb+1,rb)).map(function(p){ p=p.trim(); if(!p)return null;
+      var i=p.indexOf('='); if(i<0)return null;
+      var k=p.slice(0,i).replace('minecraft:',''); var v=p.slice(i+1);
+      return '"minecraft:'+k+'":'+v; }).filter(Boolean);
+    if(pairs.length) out+=',components:{'+pairs.join(',')+'}';
+  }
+  return out+'}';
+}
+function stripq(s){ s=(s||'').trim(); if(s.length>=2 && (s.charAt(0)==="'"||s.charAt(0)==='"') && s.charAt(s.length-1)===s.charAt(0)) return s.slice(1,-1); return s; }
+function parseTextComponent(v){
+  v=(v||'').trim();
+  if(v.charAt(0)==="'"&&v.charAt(v.length-1)==="'"){ try{ return JSON.parse(v.slice(1,-1)); }catch(e){} }
+  try{ return JSON.parse(v); }catch(e){}
+  return stripq(v);
+}
+function stripOuterBraces(s){ s=(s||'').trim();
+  if(s.charAt(0)!=='{'||s.charAt(s.length-1)!=='}') return s;
+  var d=0; for(var i=0;i<s.length;i++){ var c=s.charAt(i); if(c==='{')d++; else if(c==='}'){ d--; if(d===0) return (i===s.length-1)?s.slice(1,-1):s; } }
+  return s;
+}
+function applyTextObj(c,o){
+  if(typeof o==='string'){ c.text=o; c.color='white'; return; }
+  o=o||{}; c.text=(o.text!=null?String(o.text):''); c.color=o.color||'white';
+  ['bold','italic','underline','strikethrough','obfuscated'].forEach(function(k){ if(o[k])c[k]=true; });
+}
+function parseSchemaVal(short,v,c){
+  var sc=COMP_SCHEMA[short]; c.f={};
+  if(sc.single){ c.f.v=stripq(v); return; }
+  v=v.trim().replace(/^\{/,'').replace(/\}$/,'');
+  var typeOf={}; sc.fields.forEach(function(f){ typeOf[f[0]]=f[1]; });
+  splitTop(v).forEach(function(p){ p=p.trim(); if(!p)return; var i=p.indexOf(':'); if(i<0)return;
+    var k=p.slice(0,i).trim(), val=p.slice(i+1).trim();
+    c.f[k] = (typeOf[k]==='bool') ? (val==='true') : stripq(val);
+  });
+}
+function parseItemComponents(inner){
+  var comps=[], leftover=[];
+  splitTop(inner).forEach(function(pair){ pair=pair.trim(); if(!pair)return;
+    var i=pair.indexOf('='); if(i<0){ leftover.push(pair); return; }
+    var short=pair.slice(0,i).trim().replace(/^minecraft:/,''); var v=pair.slice(i+1).trim();
+    var c={type:'minecraft:'+short};
+    try{
+      if(short==='custom_name'||short==='item_name'){ applyTextObj(c,parseTextComponent(v)); }
+      else if(short==='lore'){ var arr=v.trim().replace(/^\[/,'').replace(/\]$/,''); c.lines=splitTop(arr).map(function(x){var l={};applyTextObj(l,parseTextComponent(x));return l;}); if(!c.lines.length)c.lines=[{text:''}]; }
+      else if(short==='enchantments'||short==='stored_enchantments'){ var m=JSON.parse(v); c.list=Object.keys(m).map(function(id){return {id:id.replace('minecraft:',''),lvl:m[id]};}); }
+      else if(short==='attribute_modifiers'){ var a=JSON.parse(v); c.list=a.map(function(x){return {id:(x.type||'').replace('minecraft:',''),amount:x.amount,op:x.operation||'add_value',slot:x.slot||'any'};}); }
+      else if(short==='damage'||short==='max_damage'||short==='max_stack_size'||short==='custom_model_data'||short==='dyed_color'){ c.num=parseInt(v,10)||0; }
+      else if(short==='unbreakable'){ /* flag */ }
+      else if(short==='enchantment_glint_override'||short==='hide_additional_tooltip'||short==='fire_resistant'){ c.bool=v.replace(/[^a-z]/g,''); }
+      else if(short==='rarity'){ c.val=stripq(v); }
+      else if(short==='potion_contents'){ c.val=(JSON.parse(v).potion||'').replace('minecraft:',''); }
+      else if(short==='custom_data'){ c.raw=v; }
+      else if(FLAG_COMPS[short]){ /* flag */ }
+      else if(COMP_SCHEMA[short] && isFlatSchema(COMP_SCHEMA[short])){ parseSchemaVal(short,v,c); }
+      else if(COMP_SCHEMA[short]){ leftover.push(pair); return; }
+      else { leftover.push(pair); return; }
+    }catch(e){ leftover.push(pair); return; }
+    comps.push(c);
+  });
+  return {comps:comps, raw:leftover.join(',')};
+}
+function componentsToCmd(compInner){
+  return splitTop(compInner).map(function(p){ p=p.trim(); if(!p)return null; var key,val;
+    if(p.charAt(0)==='"'){ var e=p.indexOf('"',1); key=p.slice(1,e); var colon=p.indexOf(':',e); val=p.slice(colon+1); }
+    else { var i=p.indexOf(':'); key=p.slice(0,i); val=p.slice(i+1); }
+    return key.replace(/^minecraft:/,'')+'='+val.trim();
+  }).filter(Boolean).join(',');
+}
+function parseBlockEntity(inner){
+  var slots=[], leftover=[];
+  splitTop(inner).forEach(function(p){ p=p.trim(); if(!p)return;
+    var i=p.indexOf(':'); if(i<0){ leftover.push(p); return; }
+    var k=p.slice(0,i).trim(), v=p.slice(i+1).trim();
+    if(k==='Items' && v.charAt(0)==='['){
+      splitTop(v.slice(1,v.lastIndexOf(']'))).forEach(function(it){ it=it.trim(); if(!it)return;
+        var inner2=it.replace(/^\{/,'').replace(/\}$/,'');
+        var slot=0,id='stone',comp='';
+        splitTop(inner2).forEach(function(f){ f=f.trim(); var ci=f.indexOf(':'); if(ci<0)return;
+          var fk=f.slice(0,ci).trim(), fv=f.slice(ci+1).trim();
+          if(fk==='Slot') slot=parseInt(fv,10)||0;
+          else if(fk==='id') id=stripq(fv).replace(/^minecraft:/,'');
+          else if(fk==='components') comp=componentsToCmd(fv.replace(/^\{/,'').replace(/\}$/,''));
+        });
+        slots.push({slot:slot,open:false,item:{value:id+(comp?'['+comp+']':'')}});
+      });
+    } else leftover.push(p);
+  });
+  return {slots:slots, raw:leftover.join(',')};
+}
+function itemStackWidget(seg){
+  if(seg.item==null){ var v0=seg.value||'stone'; seg.item=v0.split('[')[0].replace(/^minecraft:/,'')||'stone';
+    seg.comps=seg.comps||[]; seg.raw=seg.raw||'';
+    var lb0=v0.indexOf('['), rb0=v0.lastIndexOf(']');
+    if(lb0>=0 && rb0>lb0 && !seg.comps.length && !seg.raw){
+      var pr=parseItemComponents(v0.slice(lb0+1,rb0)); seg.comps=pr.comps; seg.raw=pr.raw;
+    }
+  }
+  if(seg.openComp==null) seg.openComp=-1;
+  var box=document.createElement('div');
+  var top=document.createElement('div'); top.className='wrow';
+  var dl=ensureDatalist('item'); var ii=mkInput(seg.item,'grow','item'); if(dl)ii.setAttribute('list',dl);
+  ii.addEventListener('input',function(){ seg.item=ii.value; recomputeItem(seg); });
+  top.appendChild(ii); box.appendChild(top);
+
+  var cwrap=document.createElement('div');
+  function renderComps(){
+    cwrap.innerHTML='';
+    (seg.comps||[]).forEach(function(c,idx){ cwrap.appendChild(compEditor(seg,c,idx,renderComps,idx===seg.openComp)); });
+    var addRow=document.createElement('div'); addRow.className='wrow'; addRow.style.marginTop='8px';
+    listDatalist('dl_comps', DATA.components);
+    var cinp=mkInput('','grow','+ add component (type to search '+DATA.components.length+')'); cinp.setAttribute('list','dl_comps');
+    var cadd=document.createElement('button'); cadd.className='btn'; cadd.textContent='add';
+    function doAddComp(){ var v=cinp.value.trim().replace(/^minecraft:/,''); if(DATA.components.indexOf(v)<0){ cinp.value=''; return; }
+      var full='minecraft:'+v; var nc={type:full};
+      if(full==='minecraft:enchantments'||full==='minecraft:stored_enchantments') nc.list=[{id:'sharpness',lvl:1}];
+      else if(full==='minecraft:attribute_modifiers') nc.list=[{id:(DATA.registries.attribute[0]||'max_health'),amount:1,op:'add_value',slot:'any'}];
+      else if(full==='minecraft:lore') nc.lines=[{text:''}];
+      else if(COMP_DEFAULTS[v]) nc.raw=COMP_DEFAULTS[v];
+      seg.openComp=seg.comps.length; seg.comps.push(nc); cinp.value=''; recomputeItem(seg); renderComps();
+    }
+    cadd.addEventListener('click',doAddComp);
+    cinp.addEventListener('change',doAddComp);
+    cinp.addEventListener('keydown',function(e){ if(e.key==='Enter'){e.preventDefault();doAddComp();} });
+    addRow.appendChild(cinp); addRow.appendChild(cadd); cwrap.appendChild(addRow);
+
+    var rb=document.createElement('div'); rb.className='rawbox';
+    var rl=document.createElement('div'); rl.className='rawlbl'; rl.textContent='raw components. anything not covered above goes here as-is, inside the [ ]';
+    var rt=document.createElement('textarea'); rt.value=seg.raw||''; rt.placeholder='e.g. minecraft:food={nutrition:4,saturation:0.3}';
+    rt.addEventListener('input',function(){ seg.raw=rt.value; recomputeItem(seg); });
+    rb.appendChild(rl); rb.appendChild(rt); cwrap.appendChild(rb);
+  }
+  renderComps(); box.appendChild(cwrap);
+  return box;
+}
+function compEditor(seg,c,idx,rerender,open){
+  var el=document.createElement('div'); el.className='comp';
+  var head=document.createElement('div'); head.className='compHead';
+  var nm=document.createElement('span'); nm.className='compName';
+  nm.textContent=(open?'\u25be ':'\u25b8 ')+c.type.replace('minecraft:','');
+  nm.style.cursor='pointer';
+  nm.addEventListener('click',function(){ seg.openComp = (open?-1:idx); rerender(); });
+  var x=document.createElement('button'); x.className='xbtn'; x.textContent='\u2715';
+  x.addEventListener('click',function(){ seg.comps.splice(idx,1); if(seg.openComp>=seg.comps.length)seg.openComp=-1; recomputeItem(seg); rerender(); });
+  head.appendChild(nm); head.appendChild(x); el.appendChild(head);
+  if(!open) return el;
+  var body=document.createElement('div'); el.appendChild(body);
+  var t=c.type;
+  function row(){ var r=document.createElement('div'); r.className='subrow'; body.appendChild(r); return r; }
+
+  if(t==='minecraft:custom_name'||t==='minecraft:item_name'){
+    body.appendChild(textCompEditor(c,function(){ recomputeItem(seg); }));
+  } else if(t==='minecraft:lore'){
+    c.lines=c.lines||[{text:''}];
+    c.lines.forEach(function(ln,i){ var r=row();
+      var wrap=document.createElement('div'); wrap.style.flex='1 1 100%';
+      wrap.appendChild(textCompEditor(ln,function(){ recomputeItem(seg); },'lore line '+(i+1)));
+      var xx=document.createElement('button'); xx.className='xbtn'; xx.textContent='\u2715';
+      xx.addEventListener('click',function(){ c.lines.splice(i,1); recomputeItem(seg); rerender(); });
+      r.appendChild(wrap); r.appendChild(xx); });
+    var ar=row(); var ab=document.createElement('button'); ab.className='btn chip'; ab.textContent='+ line';
+    ab.addEventListener('click',function(){ c.lines.push({text:''}); recomputeItem(seg); rerender(); }); ar.appendChild(ab);
+  } else if(t==='minecraft:enchantments'||t==='minecraft:stored_enchantments'){
+    c.list=c.list||[]; var dle=ensureDatalist('enchantment');
+    c.list.forEach(function(e,i){ var r=row(); var ei=mkInput(e.id,'grow','enchant'); if(dle)ei.setAttribute('list',dle);
+      var lv=mkInput(e.lvl||1,'num'); lv.type='number'; lv.min=1;
+      var xx=document.createElement('button'); xx.className='xbtn'; xx.textContent='\u2715';
+      ei.addEventListener('input',function(){ e.id=ei.value; recomputeItem(seg); });
+      lv.addEventListener('input',function(){ var raw=parseInt(lv.value,10); e.lvl=(isNaN(raw)||raw<1)?1:raw; if(!isNaN(raw)&&raw<1)lv.value=1; recomputeItem(seg); });
+      xx.addEventListener('click',function(){ c.list.splice(i,1); recomputeItem(seg); rerender(); });
+      r.appendChild(lbl('id')); r.appendChild(ei); r.appendChild(lbl('lvl')); r.appendChild(lv); r.appendChild(xx); });
+    var ar2=row(); var ab2=document.createElement('button'); ab2.className='btn chip'; ab2.textContent='+ enchant';
+    ab2.addEventListener('click',function(){ c.list.push({id:'sharpness',lvl:1}); recomputeItem(seg); rerender(); }); ar2.appendChild(ab2);
+  } else if(t==='minecraft:attribute_modifiers'){
+    c.list=c.list||[]; var dla=ensureDatalist('attribute');
+    c.list.forEach(function(a,i){ var r=row(); var ai=mkInput(a.id,'grow','attribute'); if(dla)ai.setAttribute('list',dla);
+      var am=mkInput(a.amount!=null?a.amount:1,'num'); am.type='number'; am.step='any';
+      var op=mkSelect(DATA.attribute_operations,a.op||'add_value');
+      var sl=mkSelect(['any','mainhand','offhand','head','chest','legs','feet','body','hand','armor'],a.slot||'any');
+      var xx=document.createElement('button'); xx.className='xbtn'; xx.textContent='\u2715';
+      ai.addEventListener('input',function(){ a.id=ai.value; recomputeItem(seg); });
+      am.addEventListener('input',function(){ a.amount=parseFloat(am.value)||0; recomputeItem(seg); });
+      op.addEventListener('change',function(){ a.op=op.value; recomputeItem(seg); });
+      sl.addEventListener('change',function(){ a.slot=sl.value; recomputeItem(seg); });
+      r.appendChild(ai); r.appendChild(lbl('amt')); r.appendChild(am); r.appendChild(op); r.appendChild(sl); r.appendChild(xx); });
+    var ar3=row(); var ab3=document.createElement('button'); ab3.className='btn chip'; ab3.textContent='+ modifier';
+    ab3.addEventListener('click',function(){ c.list.push({id:(DATA.registries.attribute[0]||'max_health'),amount:1,op:'add_value',slot:'any'}); recomputeItem(seg); rerender(); }); ar3.appendChild(ab3);
+  } else if(t==='minecraft:damage'||t==='minecraft:max_damage'||t==='minecraft:max_stack_size'||t==='minecraft:custom_model_data'||t==='minecraft:dyed_color'){
+    var r=row(); var ni=mkInput(c.num!=null?c.num:0,'num'); ni.type='number';
+    var nb=NUM_BOUNDS[t]||[null,null]; if(nb[0]!=null)ni.min=nb[0]; if(nb[1]!=null)ni.max=nb[1];
+    ni.addEventListener('input',function(){ var raw=parseInt(ni.value,10); var v=clampNum(raw,nb[0],nb[1]); c.num=v; if(!isNaN(raw)&&((nb[0]!=null&&raw<nb[0])||(nb[1]!=null&&raw>nb[1])))ni.value=v; recomputeItem(seg); }); r.appendChild(ni);
+  } else if(t==='minecraft:unbreakable'){
+    var r=row(); var sp=document.createElement('span'); sp.className='small'; sp.textContent='adds unbreakable={}'; r.appendChild(sp);
+  } else if(t==='minecraft:enchantment_glint_override'||t==='minecraft:hide_additional_tooltip'||t==='minecraft:fire_resistant'){
+    var r=row(); var bs=mkSelect(['true','false'],c.bool||'true'); bs.addEventListener('change',function(){ c.bool=bs.value; recomputeItem(seg); }); r.appendChild(bs);
+  } else if(t==='minecraft:rarity'){
+    var r=row(); var rs=mkSelect(['common','uncommon','rare','epic'],c.val||'common'); rs.addEventListener('change',function(){ c.val=rs.value; recomputeItem(seg); }); r.appendChild(rs);
+  } else if(t==='minecraft:potion_contents'){
+    var r=row(); var dlp=ensureDatalist('potion'); var pi=mkInput(c.val||'','grow','potion'); if(dlp)pi.setAttribute('list',dlp);
+    pi.addEventListener('input',function(){ c.val=pi.value; recomputeItem(seg); }); r.appendChild(pi);
+  } else if(FLAG_COMPS[t.replace('minecraft:','')]){
+    var r=row(); var sp=document.createElement('span'); sp.className='small'; sp.textContent='just adds '+t.replace('minecraft:','')+'={}, it is a flag with no value'; r.appendChild(sp);
+  } else if(COMP_SCHEMA[t.replace('minecraft:','')]){
+    var sn=t.replace('minecraft:',''); var sc=COMP_SCHEMA[sn]; c.f=c.f||{};
+    if(sc.single){
+      var r=row(); var isnum=(sc.single==='int'||sc.single==='float'); var inp;
+      if(sc.single==='id' && sc.reg && DATA.registries[sc.reg]){ var dl=ensureDatalist(sc.reg); inp=mkInput(c.f.v!=null?c.f.v:sc.def,'grow',sc.reg.replace('_',' ')); if(dl)inp.setAttribute('list',dl); }
+      else { inp=mkInput(c.f.v!=null?c.f.v:sc.def, isnum?'num':'grow', sc.single==='id'?'namespace:path':''); if(isnum)inp.type='number'; if(sc.single==='float')inp.step='any'; }
+      inp.addEventListener('input',function(){ var mn=FIELD_MIN[sn]; if(isnum&&mn!=null){ var raw=parseFloat(inp.value); if(!isNaN(raw)&&raw<mn)inp.value=mn; } c.f.v=inp.value; recomputeItem(seg); });
+      r.appendChild(lbl(sn)); r.appendChild(inp);
+    } else if(sc.list){
+      body.appendChild(renderSchemaField(['items','list',sc.list], c.f, function(){ recomputeItem(seg); }));
+    } else {
+      body.appendChild(renderSchemaFields(sc.fields, c.f, function(){ recomputeItem(seg); }));
+    }
+  } else {
+    var r=row(); var lst=COMP_LIST[t.replace('minecraft:','')]; var rw=mkInput(c.raw||(lst?'[]':'{}'),'grow','value / SNBT'); rw.addEventListener('input',function(){ c.raw=rw.value; recomputeItem(seg); }); r.appendChild(rw);
+  }
+  return el;
+}
+
+// adding a chip n auto-jumpin thru the single-child bits
+function pushSeg(key,node){
+  var s={key:key,node:node,arg:(node.t==='a'),parser:node.p,props:node.pr};
+  if(s.arg) s.value=defaultValue(s.parser,s.props);
+  segments.push(s); return s;
+}
+function autoAdvance(){
+  var guard=0;
+  while(guard++<40){
+    var last=segments[segments.length-1];
+    if(!last) break;
+    if(last.node.x) break;
+    var ch=last.node.c;
+    if(!ch) break;
+    var keys=Object.keys(ch);
+    if(keys.length!==1) break;
+    var k=keys[0]; pushSeg(k,ch[k]);
+  }
+}
+function pickChild(key,node){ pushSeg(key,node); autoAdvance();
+  var li=segments.length-1; sel=(segments[li]&&segments[li].arg)?li:null; render(); }
+function truncateTo(i){ segments=segments.slice(0,i); if(sel!=null&&sel>=segments.length)sel=null; render(); }
+
+// paste a command back in n rebuild the chips. best effort, walks the tree token by token
+function tokenize(s){
+  var out=[],cur='',depth=0,q=null;
+  for(var i=0;i<s.length;i++){ var c=s[i];
+    if(q){ cur+=c; if(c==='\\'){ cur+=(s[++i]||''); continue; } if(c===q)q=null; continue; }
+    if(c==='"'||c==="'"){ q=c; cur+=c; continue; }
+    if(c==='['||c==='{'||c==='('){ depth++; cur+=c; continue; }
+    if(c===']'||c==='}'||c===')'){ depth--; cur+=c; continue; }
+    if(c===' '&&depth===0){ if(cur){out.push(cur);cur='';} continue; }
+    cur+=c;
+  }
+  if(cur)out.push(cur);
+  return out;
+}
+function importCommand(str){
+  str=(str||'').trim().replace(/^\//,''); if(!str) return false;
+  var toks=tokenize(str); if(!toks.length) return false;
+  var segs=[], node=DATA.tree, i=0, guard=0;
+  while(i<toks.length && guard++<200){
+    var ch = node.c ? node.c : (node.rd ? (nodeAtPath(node.rd)||{}).c : null);
+    if(!ch) break;
+    var tok=toks[i];
+    if(ch[tok] && ch[tok].t!=='a'){
+      segs.push({key:tok,node:ch[tok],arg:false}); node=ch[tok]; i++;
+      if(tok==='run') node=DATA.tree;
+      continue;
+    }
+    var argKey=null,an=null;
+    for(var k in ch){ if(ch[k].t==='a'){ argKey=k; an=ch[k]; break; } }
+    if(!an) break;
+    var p=an.p, consume=1, val;
+    if(p==='minecraft:block_pos'||p==='minecraft:vec3'){ val=toks.slice(i,i+3).join(' '); consume=3; }
+    else if(p==='minecraft:column_pos'||p==='minecraft:vec2'||p==='minecraft:rotation'){ val=toks.slice(i,i+2).join(' '); consume=2; }
+    else { val=tok; }
+    segs.push({key:argKey,node:an,arg:true,parser:p,props:an.pr,value:val});
+    node=an; i+=consume;
+    if(an.rd) node=nodeAtPath(an.rd)||node;
+  }
+  if(!segs.length) return false;
+  segments=segs; sel=null; render();
+  return true;
+}
+
+// the live command string + validity light
+function tokenOf(s){ return s.arg ? (s.value!=null?s.value:'') : s.key; }
+function buildString(){
+  var parts=[]; for(var i=0;i<segments.length;i++){ var t=tokenOf(segments[i]); if(t!=='') parts.push(t); }
+  return '/'+parts.join(' ');
+}
+function updateOutput(){
+  $('outText').textContent=buildString();
+  refreshTok();
+  var nErr=validate();
+  var last=segments[segments.length-1];
+  var v=$('validity');
+  if(!segments.length){ v.textContent=''; }
+  else if(nErr){ v.textContent='\u2717 fix errors'; v.className='invalid'; }
+  else if(last && last.node.x){ v.textContent='\u2713 runnable'; v.className='valid'; }
+  else { v.textContent='needs more'; v.className='invalid'; }
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function tokDisplay(s){ return s.arg ? ((s.value!=null&&s.value!=='')?s.value:('<'+s.key+'>')) : s.key; }
+function refreshTok(){ for(var i=0;i<segments.length;i++){ if(tokLabs[i]) tokLabs[i].textContent=tokDisplay(segments[i]); } }
+
+// quick check the brackets n quotes actually close, catches the obvious typos
+function balanced(s){
+  var st=[], q=null, pair={')':'(',']':'[','}':'{'};
+  for(var i=0;i<s.length;i++){ var c=s[i];
+    if(q){ if(c==='\\'){ i++; continue; } if(c===q)q=null; continue; }
+    if(c==='"'||c==="'"){ q=c; continue; }
+    if(c==='('||c==='['||c==='{'){ st.push(c); }
+    else if(c===')'||c===']'||c==='}'){ if(st.pop()!==pair[c]) return false; }
+  }
+  return st.length===0 && !q;
+}
+// split on the top level commas only, ignores the ones inside nested stuff
+function splitTop(s){ var out=[],d=0,cur='',q=null;
+  for(var i=0;i<s.length;i++){ var c=s[i];
+    if(q){ cur+=c; if(c==='\\'){ cur+=(s[++i]||''); continue; } if(c===q)q=null; continue; }
+    if(c==='"'||c==="'"){ q=c; cur+=c; continue; }
+    if(c==='['||c==='{')d++; if(c===']'||c==='}')d--;
+    if(c===','&&d===0){ out.push(cur); cur=''; } else cur+=c; }
+  out.push(cur); return out;
+}
+// look over a selector, hand back errors (broken) n warnings (works but footgun)
+var NUMSEL={distance:1,x:1,y:1,z:1,dx:1,dy:1,dz:1,x_rotation:1,y_rotation:1,level:1,limit:1};
+function selectorCheck(key,v,pr){
+  var e=[],w=[]; v=(v||'').trim();
+  if(!v){ return {e:e,w:w}; }
+  if(v.charAt(0)!=='@'){ return {e:e,w:w}; } // plain player name
+  var base=v.slice(0,2), rest=v.slice(2);
+  if(['@p','@a','@e','@r','@s','@n'].indexOf(base)<0){ e.push('unknown selector <code>'+esc(base)+'</code>'); return {e:e,w:w}; }
+  if(rest){
+    if(rest.charAt(0)!=='['){ e.push('expected <code>[</code> after '+base); }
+    else if(!balanced(rest)){ e.push('unclosed <code>[ ]</code> in the '+base+' selector'); }
+    else {
+      var inner=rest.slice(1,rest.lastIndexOf(']'));
+      splitTop(inner).forEach(function(p){ p=p.trim(); if(!p)return;
+        var eq=p.indexOf('='); if(eq<0){ e.push('selector arg <code>'+esc(p)+'</code> is missing <code>=</code>'); return; }
+        var k=p.slice(0,eq).trim(), val=p.slice(eq+1).trim().replace(/^!/,'');
+        if(NUMSEL[k]){
+          if(/[^0-9.\-]/.test(val) || !/[0-9]/.test(val)) e.push('<code>'+esc(k)+'=</code> needs a number or range, got <code>'+esc(val)+'</code>');
+          else if(k==='limit' && (val.indexOf('.')>=0 || parseInt(val,10)<1)) e.push('<code>limit</code> must be a positive whole number');
+        }
+      });
+    }
+  }
+  // single target command but the selector could grab loads, warn em
+  if(pr && pr.amount==='single' && (base==='@e'||base==='@a') && !/limit\s*=\s*1(\b|,|\])/.test(v)){
+    w.push('&#9888; <b>'+esc(key)+'</b> must target exactly one '+(pr.type==='players'?'player':'entity')+
+      ', but <code>'+esc(v)+'</code> can match several. use <code>@s/@p/@r</code>, add <code>[limit=1]</code>, or run it as <code>execute as '+esc(v)+' run &lt;cmd&gt; @s</code>');
+  }
+  return {e:e,w:w};
+}
+var SNBT={'minecraft:nbt_compound_tag':1,'minecraft:nbt_tag':1,'minecraft:style':1,'minecraft:component':1,
+  'minecraft:block_state':1,'minecraft:block_predicate':1,'minecraft:item_stack':1,'minecraft:item_predicate':1};
+function validate(){
+  var box=$('warns'); if(!box) return 0;
+  var errs=[], warns=[];
+  for(var i=0;i<segments.length;i++){
+    var s=segments[i]; if(!s.arg) continue;
+    if(s.parser==='minecraft:entity'||s.parser==='minecraft:game_profile'||s.parser==='minecraft:score_holder'){
+      var r=selectorCheck(s.key,s.value,s.props||{}); errs=errs.concat(r.e); warns=warns.concat(r.w);
+    }
+    if(SNBT[s.parser] && s.value && !balanced(s.value)){
+      errs.push('<b>'+esc(s.key)+'</b> has a bracket, brace, or quote that doesn\'t close');
+    }
+  }
+  var rows=errs.map(function(x){return '<div class="errrow">&#10007; '+x+'</div>';})
+    .concat(warns.map(function(x){return '<div class="warnrow">'+x+'</div>';}));
+  if(!rows.length){ box.style.display='none'; box.innerHTML=''; }
+  else { box.style.display=''; box.innerHTML=rows.join(''); }
+  return errs.length;
+}
+
+// draw everythin: the chip strip, the one open editor, n the next-up chips
+var tokLabs=[];
+function render(){
+  var b=$('builder'); b.innerHTML=''; tokLabs=[];
+
+  if(segments.length){
+    var strip=document.createElement('div'); strip.className='strip';
+    var slash=document.createElement('span'); slash.className='slash'; slash.textContent='/'; strip.appendChild(slash);
+    for(var i=0;i<segments.length;i++){ (function(idx){
+      var s=segments[idx];
+      var tok=document.createElement('span');
+      tok.className='tok'+(s.arg?' arg':' lit')+(idx===sel?' sel':'')+((s.arg&&!s.value)?' empty':'');
+      var lab=document.createElement('span'); lab.className='toklab'; lab.textContent=tokDisplay(s);
+      tokLabs[idx]=lab; tok.appendChild(lab);
+      var x=document.createElement('span'); x.className='tokx'; x.textContent='\u2715'; x.title='remove from here';
+      x.addEventListener('click',function(e){ e.stopPropagation(); truncateTo(idx); });
+      tok.appendChild(x);
+      tok.addEventListener('click',function(){ sel=(s.arg?idx:null); render(); });
+      strip.appendChild(tok);
+    })(i); }
+    b.appendChild(strip);
+  }
+
+  if(sel!=null && segments[sel] && segments[sel].arg){
+    var es=segments[sel];
+    var ed=document.createElement('div'); ed.className='editpanel';
+    var eh=document.createElement('div'); eh.className='edhead';
+    eh.innerHTML='<span class="edname">editing: '+esc(es.key)+' &lt;'+(es.parser?es.parser.replace('minecraft:','').replace('brigadier:',''):'arg')+'&gt;</span>';
+    ed.appendChild(eh); ed.appendChild(argWidget(es)); b.appendChild(ed);
+  }
+
+  var last=segments[segments.length-1];
+  var ch=childrenOf(last);
+  var nextWrap=document.createElement('div'); nextWrap.className='next';
+  if(!segments.length){
+    var nl=document.createElement('div'); nl.className='nextLbl'; nl.textContent='pick a command:';
+    nextWrap.appendChild(nl);
+    ensureCmdList();
+    var search=mkInput('','grow','search '+Object.keys(ROOT.c).length+' commands...'); search.setAttribute('list','dl_cmds');
+    var go=document.createElement('button'); go.className='btn primary'; go.textContent='go';
+    function goCmd(){ var k=search.value.trim(); if(ROOT.c[k]){ pickChild(k,ROOT.c[k]); } }
+    go.addEventListener('click',goCmd);
+    search.addEventListener('change',goCmd);
+    search.addEventListener('keydown',function(e){ if(e.key==='Enter')goCmd(); });
+    var sr=document.createElement('div'); sr.className='wrow'; sr.appendChild(search); sr.appendChild(go); nextWrap.appendChild(sr);
+    var qc=document.createElement('div'); qc.className='chips'; qc.style.marginTop='8px';
+    ['give','summon','execute','effect','tp','setblock','fill','data','tellraw','particle','playsound','attribute'].forEach(function(k){
+      if(!ROOT.c[k])return; var cbtn=document.createElement('button'); cbtn.className='btn chip'; cbtn.textContent=k;
+      cbtn.addEventListener('click',function(){ pickChild(k,ROOT.c[k]); }); qc.appendChild(cbtn); });
+    nextWrap.appendChild(qc);
+  } else if(ch){
+    var keys=Object.keys(ch);
+    var lits=keys.filter(function(k){return ch[k].t!=='a';});
+    var args=keys.filter(function(k){return ch[k].t==='a';});
+    var nl2=document.createElement('div'); nl2.className='nextLbl';
+    nl2.textContent = isExecutable(last) ? 'this runs already, optional extras:' : 'next:';
+    nextWrap.appendChild(nl2);
+    var chips=document.createElement('div'); chips.className='chips';
+    lits.forEach(function(k){ var c=document.createElement('button'); c.className='btn chip'; c.textContent=k;
+      c.addEventListener('click',function(){ pickChild(k,ch[k]); }); chips.appendChild(c); });
+    args.forEach(function(k){ var c=document.createElement('button'); c.className='btn chip';
+      c.textContent='+ '+k+' <'+(ch[k].p?ch[k].p.replace('minecraft:','').replace('brigadier:',''):'arg')+'>';
+      c.addEventListener('click',function(){ pickChild(k,ch[k]); }); chips.appendChild(c); });
+    nextWrap.appendChild(chips);
+  } else if(last && last.key==='run'){
+    var nl3=document.createElement('div'); nl3.className='nextLbl'; nl3.textContent='run command:'; nextWrap.appendChild(nl3);
+    var chips3=document.createElement('div'); chips3.className='chips';
+    ['give','summon','tp','setblock','say','effect','data','particle'].forEach(function(k){ if(!ROOT.c[k])return;
+      var c=document.createElement('button'); c.className='btn chip'; c.textContent=k;
+      c.addEventListener('click',function(){ pickChild(k,ROOT.c[k]); }); chips3.appendChild(c); });
+    nextWrap.appendChild(chips3);
+  }
+  b.appendChild(nextWrap);
+  updateOutput();
+}
+var cmdListMade=false;
+function ensureCmdList(){ if(cmdListMade)return; var dl=document.createElement('datalist'); dl.id='dl_cmds';
+  Object.keys(ROOT.c).sort().forEach(function(k){ var o=document.createElement('option'); o.value=k; dl.appendChild(o); });
+  document.body.appendChild(dl); cmdListMade=true; }
+
+// copy / reset / minimize / import buttons
+$('copyBtn').addEventListener('click',function(){
+  var txt=buildString();
+  var done=function(){ var b=$('copyBtn'); b.textContent='copied!'; setTimeout(function(){b.textContent='copy';},1200); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,done); }
+  else { var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy');}catch(e){} document.body.removeChild(ta); done(); }
+});
+$('resetBtn').addEventListener('click',function(){ segments=[]; sel=null; render(); });
+$('outMin').addEventListener('click',function(){
+  var mini=$('out').classList.toggle('mini');
+  $('outMin').innerHTML = mini?'+':'&#8211;';
+});
+$('importBtn').addEventListener('click',function(){
+  var ok=importCommand($('importIn').value);
+  $('importMsg').textContent = ok ? 'got it, edit the chips below' : "couldn't read that one, make sure it is an actual command";
+  $('importMsg').style.color = ok ? '' : '#c04a3a';
+});
+$('importIn').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('importBtn').click(); } });
+
+// pull the command data n kick it off
+fetch('command-data.min.json').then(function(r){ if(!r.ok)throw new Error(r.status); return r.json(); })
+.then(function(d){ DATA=d; ROOT=d.tree; var lm=$('loadMsg'); if(lm)lm.remove(); render(); })
+.catch(function(e){
+  $('builder').innerHTML='<div class="loading">couldn\'t load command-data.min.json ('+e.message+'). '+
+    'make sure it sits next to this html file in the repo.</div>';
+});
+})();</script>
+</body>
+</html>
