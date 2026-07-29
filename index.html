@@ -25,11 +25,11 @@
   .iconBtn .ic-moon{display:block}
   html.dark .iconBtn .ic-moon{display:none}
   html.dark .iconBtn .ic-sun{display:block}
-  .panel{background:#c6c6c6;border:2px solid #1a1a1a;box-shadow:inset 2px 2px 0 #e8e8e8, inset -2px -2px 0 #6b6b6b;padding:12px;margin-top:22px}
+  .panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px;margin-top:22px}
   .panel h2{margin:0 0 8px;font-size:22px;font-weight:normal;color:#1c1c1c}
   #statsPanel{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
     align-items:center;justify-content:center;z-index:30}
-  #statsPanel .box{background:#c6c6c6;border:2px solid #1a1a1a;box-shadow:inset 2px 2px 0 #e8e8e8, inset -2px -2px 0 #6b6b6b;
+  #statsPanel .box{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;
     padding:14px 18px;min-width:300px;max-width:92vw;max-height:88vh;overflow:auto}
   #statsPanel h2{margin:0 0 10px;font-size:24px;font-weight:normal;color:#1c1c1c}
   .statRow{display:flex;justify-content:space-between;gap:20px;padding:3px 0;color:#3f3f3f}
@@ -42,7 +42,7 @@
   html.dark h1{color:#fff;text-shadow:3px 3px #0c0e12}
   html.dark .big small{color:#aeb6c6}
   html.dark .panel,html.dark #statsPanel .box{background:#23262e;
-    border:2px solid #0a0c10;box-shadow:inset 2px 2px 0 #3f4552, inset -2px -2px 0 #10131a;color:#d8dbe2}
+    border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
   html.dark .panel h2,html.dark #statsPanel h2,html.dark .statRow b{color:#fff}
   html.dark .statRow{color:#c3c8d4}
   html.dark .sep{background:#3f4552;border-bottom-color:#5a6480}
@@ -63,8 +63,6 @@
   <span class="splash" id="splash">Java 1.21.11!</span>
 
   <div class="tools">
-    <a class="btn big" href="command-generator.html">Command Generator
-      <small>build any command, with the syntax done for you</small></a>
     <a class="btn big" href="particles.html">Particle Renderer
       <small>preview /particle commands in 3d</small></a>
     <a class="btn big" href="advancement-updater.html">Advancement Updater
