@@ -45,7 +45,14 @@ button.primary:hover{background:#7cb35a;color:#fff;box-shadow:inset 2px 2px 0 #d
 html.dark .iconBtn .ic-moon{display:none}html.dark .iconBtn .ic-sun{display:block}
 html.dark .iconBtn svg{fill:currentColor}
 
-.panel{background:#c6c6c6;border:3px solid;border-color:#fff #555 #555 #fff;padding:12px}
+
+/* dropdowns get the same square pixel corners as the text boxes n buttons, no native
+   rounded blob. appearance:none kills the system look so i draw my own lil arrow */
+select{-webkit-appearance:none;-moz-appearance:none;appearance:none;border-radius:0 !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M0 2h8L4 7Z' fill='%23bdbdbd'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;background-position:right 7px center !important;padding-right:22px !important}
+
+.panel{background:#c6c6c6;border:2px solid #1a1a1a;box-shadow:inset 2px 2px 0 #e8e8e8, inset -2px -2px 0 #6b6b6b;padding:12px}
 label{color:#3f3f3f}
 
 /* dark mode, swaps the dirt for deepslate, buttons go blue/black, text goes light */
@@ -60,5 +67,5 @@ html.dark button:hover,html.dark .btn:hover{background:#3d4a6b;color:#9ecbff;
   box-shadow:inset 2px 2px 0 #7f92c0, inset -2px -2px 0 #202838}
 html.dark button:active,html.dark .btn:active{box-shadow:inset -2px -2px 0 #5a6480, inset 2px 2px 0 #191d28}
 html.dark button.primary{background:#2f5da8;box-shadow:inset 2px 2px 0 #7fa8e8, inset -2px -2px 0 #12233c}
-html.dark .panel{background:#23262e;border-color:#3f4552 #10131a #10131a #3f4552;color:#d8dbe2}
+html.dark .panel{background:#23262e;border:2px solid #0a0c10;box-shadow:inset 2px 2px 0 #3f4552, inset -2px -2px 0 #10131a;color:#d8dbe2}
 html.dark label{color:#c3c8d4}
