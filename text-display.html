@@ -4,37 +4,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Text Display 1.21.11</title>
-<link rel="stylesheet" href="ui/style.css">
+<link rel="stylesheet" href="ui/style.css?v=2">
 <style>
-  .wrap{max-width:900px;margin:0 auto;padding:14px 18px 40px;overflow-x:hidden}
-  html,body{max-width:100%;overflow-x:hidden}
-  /* the text/book/sign picker */
+  .wrap{max-width:900px;margin:0 auto;padding:14px 18px 40px}
+  /* canvas mode picker */
   .modes{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-  /* editor on the left, preview on the right */
+  /* the editor + preview split */
   .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:760px){.split{grid-template-columns:1fr}}
   .editArea{width:100%;min-height:180px;background:#000;border:2px solid #a0a0a0;color:#e0e0e0;
     font-family:'MinecraftTTF','VT323',monospace;font-size:17px;padding:8px 10px;resize:vertical;line-height:1.4}
   .editArea:focus{outline:none;border-color:#fff}
-  /* the bold/italic/etc row */
+  /* format toolbar */
   .fmtbar{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
   .fmtbar button{padding:3px 9px;font-size:17px}
   .fmtbar button.on{background:#6d9c50;box-shadow:inset 2px 2px 0 #c8e8b0, inset -2px -2px 0 #2b451c}
-  .swatch{width:24px;height:24px;border:2px solid #1a1a1a;cursor:pointer;padding:0}
-  .swatch.on{outline:2px solid #fff;outline-offset:1px}
-  .colors{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;align-items:center}
-  .colorPick{display:flex;gap:6px;align-items:center;margin:6px 0;flex-wrap:wrap}
-  .colorPick input[type=color]{width:34px;height:30px;padding:0;border:2px solid #1a1a1a;background:#000;cursor:pointer}
-  .colorPick input[type=text]{width:110px}
-  /* the box the preview sits in */
+  .swatch{width:22px;height:22px;border:2px solid #1a1a1a;cursor:pointer;padding:0}
+  .colors{display:flex;gap:3px;flex-wrap:wrap;margin:6px 0}
+  /* preview stage */
   .stage{background:#1a1a1a;border:3px solid;border-color:#555 #111 #111 #555;
-    display:flex;align-items:center;justify-content:center;padding:16px;min-height:240px;position:relative}
+    display:flex;align-items:center;justify-content:center;padding:20px;min-height:300px;position:relative}
   html.dark .stage{background:#0c0e12}
-  .flipRow{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .flipRow{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}
   .pageNum{color:#a0a0a0;min-width:90px;text-align:center}
   html.dark .pageNum{color:#8b93a3}
-  /* canvas fills its box, the sharpness stuff is handled in js */
-  #render{image-rendering:pixelated;max-width:100%;height:auto;display:block}
+  /* the rendered text canvas gets crisp scaling */
+  #render{image-rendering:pixelated}
   .out{margin-top:14px}
   .out textarea{width:100%;min-height:80px;background:#000;border:2px solid #a0a0a0;color:#54fc54;
     font-family:'MinecraftTTF','VT323',monospace;font-size:15px;padding:8px;line-height:1.4}
@@ -79,12 +74,6 @@
           <button id="fClear" title="reset formatting">reset</button>
         </div>
         <div class="colors" id="colors"></div>
-        <div class="colorPick">
-          <span class="curColor" id="curColorBox"></span>
-          <input type="color" id="colorWheel" title="pick any color">
-          <input type="text" id="colorText" placeholder="#RRGGBB or 16711680" spellcheck="false">
-          <button id="colorApply">set</button>
-        </div>
         <textarea id="editor" class="editArea" spellcheck="false" placeholder="type here, use the buttons above to style the selection"></textarea>
         <p class="sub" id="pageControls" style="display:none"></p>
       </div>
@@ -113,15 +102,15 @@ const $=id=>document.getElementById(id);
 const ASSET="https://cdn.jsdelivr.net/gh/misode/mcmeta@assets/assets/minecraft/textures/";
 const ASSET_FB="https://raw.githubusercontent.com/misode/mcmeta/assets/assets/minecraft/textures/";
 
-// the actual pixel widths of each char in the java font (glyph + the 1px gap after).
-// checked these against the game, most letters are 6, these are the odd ones out
+// real java default-font character widths, in pixels (glyph + the 1px trailing space).
+// verified against the game: most letters are 6, these are the exceptions
 const W={' ':4,'!':2,'"':5,"'":3,'(':5,')':5,'*':5,',':2,'.':2,':':2,';':2,'<':5,'>':5,
   '@':7,'I':4,'[':4,']':4,'`':3,'f':5,'i':2,'k':5,'l':3,'t':4,'{':5,'|':2,'}':5,'~':7};
 function charW(c){ return W[c]!=null?W[c]:6; }
-// bold makes every char 1px wider
+// bold adds 1px to every glyph
 function textWidth(str,bold){ let w=0; for(const c of str)w+=charW(c)+(bold?1:0); return w; }
 
-// the 16 normal mc colors, name -> hex + the § code
+// the 16 vanilla colors (name -> hex, and the § code)
 const COLORS=[
   ["black","#000000","0"],["dark_blue","#0000AA","1"],["dark_green","#00AA00","2"],
   ["dark_aqua","#00AAAA","3"],["dark_red","#AA0000","4"],["dark_purple","#AA00AA","5"],
@@ -133,45 +122,27 @@ let mode="text";
 let curColor="white";
 const active={bold:false,italic:false,underline:false,strikethrough:false,obfuscated:false};
 
-// book is just a list of pages, each one raw text
+// book: pages of raw text (with § codes typed inline for simplicity)
 let bookPages=[""];
 let curPage=0;
-// sign has a front n back, 4 lines each
-let signFaces={front:"",back:""};
+// sign: front + back, 4 lines each
+let signFaces={front:["","","",""],back:["","","",""]};
 let signSide="front";
 let signType="standing"; // or "hanging"
-let signGlow=false;      // glowing text (glow ink sac)
 
-// the real limits from the wiki n source
+// limits from the wiki / source
 const BOOK_W=114, BOOK_LINES=14, BOOK_MAXPAGE=100;
 const SIGN_W=90, SIGN_LINES=4;
 
-// ---- the color squares ----
-function setColor(val){
-  curColor=val;
-  $("curColorBox").style.background=hex(val);
-  // light up the square if its one of the named colors
-  [...$("colors").children].forEach(el=>el.classList.toggle("on",el.dataset.name===val));
-  render();
-}
-COLORS.forEach(([name,hexv])=>{
+// ---- color swatches ----
+COLORS.forEach(([name,hex])=>{
   const b=document.createElement("button");
-  b.className="swatch";b.style.background=hexv;b.title=name;b.dataset.name=name;
-  b.onclick=()=>setColor(name);
+  b.className="swatch";b.style.background=hex;b.title=name;
+  b.onclick=()=>{curColor=name;wrapSelection("color",name);};
   $("colors").appendChild(b);
 });
-// the wheel lets u pick literally any color
-$("colorWheel").oninput=()=>setColor($("colorWheel").value.toUpperCase());
-// the box takes a hex like #ff0000 or a decimal like 16711680
-$("colorApply").onclick=()=>{
-  let v=$("colorText").value.trim();
-  if(/^\d+$/.test(v)){ v="#"+(parseInt(v,10)&0xFFFFFF).toString(16).padStart(6,"0"); }
-  if(/^#?[0-9a-fA-F]{6}$/.test(v)){ if(v[0]!=="#")v="#"+v; setColor(v.toUpperCase()); }
-  else $("warn").textContent="that's not a valid hex or decimal color";
-};
-$("colorText").addEventListener("keydown",e=>{if(e.key==="Enter")$("colorApply").click();});
 
-// ---- the bold/italic/etc buttons ----
+// ---- format buttons toggle a style on the current selection ----
 function fmtBtn(id,key){
   $(id).onclick=()=>{ active[key]=!active[key]; $(id).classList.toggle("on",active[key]);
     wrapSelection(key,active[key]); };
@@ -182,11 +153,12 @@ $("fClear").onclick=()=>{ for(const k in active){active[k]=false;}
   ["fBold","fItalic","fUnder","fStrike","fObf"].forEach(i=>$(i).classList.remove("on"));
   render(); };
 
-// keeping it simple, the styles apply to the whole box not a selection. doing
-// proper per-word styling is a way bigger job, this works n the output is right
+// for the simple editor we treat the textarea as plain text and apply the CURRENT
+// active styles to the whole thing. (a full rich-text selection editor is a bigger
+// job; this keeps it usable and the output correct)
 function wrapSelection(){ render(); }
 
-// ---- switching between text/book/sign ----
+// ---- mode switching ----
 document.querySelectorAll(".modeBtn").forEach(b=>b.onclick=()=>{
   mode=b.dataset.mode;
   document.querySelectorAll(".modeBtn").forEach(x=>x.classList.toggle("primary",x===b));
@@ -200,10 +172,10 @@ function syncModeUI(){
   $("pageControls").style.display=isBook?"block":"none";
   $("editLabel").textContent=mode==="text"?"Text":isBook?("Page "+(curPage+1)):("Sign "+signSide);
   buildFlipRow();
-  // put the right text back in the box
+  // load the right text into the editor
   if(isBook)$("editor").value=bookPages[curPage];
-  else if(isSign)$("editor").value=signFaces[signSide];
-  // text mode just leaves whatevers there
+  else if(isSign)$("editor").value=signFaces[signSide].join("\n");
+  // text mode keeps whatever's there
 }
 
 function buildFlipRow(){
@@ -227,51 +199,22 @@ function buildFlipRow(){
     type.textContent=signType==="standing"?"standing":"hanging";
     type.title="switch sign type";
     type.onclick=()=>{ signType=signType==="standing"?"hanging":"standing";buildFlipRow();render(); };
-    const glow=document.createElement("button");glow.className="btn"+(signGlow?" primary":"");
-    glow.textContent=signGlow?"glowing":"glow off";
-    glow.title="glowing text (glow ink sac)";
-    glow.onclick=()=>{ signGlow=!signGlow;buildFlipRow();render(); };
     const flip=document.createElement("button");flip.className="btn";
     flip.textContent=signSide==="front"?"flip to back \u21BB":"flip to front \u21BA";
     flip.onclick=()=>{ saveEditor();signSide=signSide==="front"?"back":"front";syncModeUI();render(); };
-    r.appendChild(type);r.appendChild(glow);r.appendChild(flip);
+    r.appendChild(type);r.appendChild(flip);
   }
 }
 
-// grab whats in the box n save it to the current page/face
+// pull the editor text back into the model for the current page/face
 function saveEditor(skipReadBack){
   if(mode==="book")bookPages[curPage]=$("editor").value;
-  else if(mode==="sign")signFaces[signSide]=$("editor").value;
+  else if(mode==="sign")signFaces[signSide]=$("editor").value.split("\n").slice(0,SIGN_LINES);
 }
 
-$("editor").addEventListener("input",()=>{
-  saveEditor();
-  if(mode==="book")reflowBook();
-  render();
-});
+$("editor").addEventListener("input",()=>{saveEditor();render();});
 
-// if a page goes over 14 lines, shove the extra lines onto the next page n keep
-// kick it offing, so a big paste just flows across however many pages it needs instead of
-// vanishing
-function reflowBook(){
-  let p=curPage;
-  while(p<BOOK_MAXPAGE){
-    const wrapped=wrapToWidth(bookPages[p]||"",BOOK_W,active.bold);
-    if(wrapped.length<=BOOK_LINES)break;   // this page fits now, stop
-    const keep=wrapped.slice(0,BOOK_LINES).join("\n");
-    const overflow=wrapped.slice(BOOK_LINES).join("\n");
-    bookPages[p]=keep;
-    if(p+1>=bookPages.length){ if(bookPages.length<BOOK_MAXPAGE)bookPages.push(""); else break; }
-    // stick the overflow on the front of the next page, with a space so words dont mash together
-    bookPages[p+1]=overflow+(bookPages[p+1]?" "+bookPages[p+1]:"");
-    p++;                                    // check the next page too
-  }
-  // show the trimmed page n update the page counter
-  $("editor").value=bookPages[curPage];
-  buildFlipRow();
-}
-
-// ---- wrap text to a pixel width, gives back the lines ----
+// ---- word-wrap a string to a pixel width, returns array of lines ----
 function wrapToWidth(str,maxW,bold){
   const out=[]; 
   for(const para of str.split("\n")){
@@ -279,7 +222,7 @@ function wrapToWidth(str,maxW,bold){
     for(const word of para.split(" ")){
       const wW=textWidth(word,bold), spaceW=charW(' ')+(bold?1:0);
       if(line==="" ){ 
-        // if one word is longer than the whole line it has to get chopped
+        // a single word longer than the line has to hard-break
         if(wW>maxW){ let chunk=""; 
           for(const c of word){ const cw=charW(c)+(bold?1:0);
             if(textWidth(chunk,bold)+cw>maxW){out.push(chunk);chunk=c;} else chunk+=c; }
@@ -293,31 +236,25 @@ function wrapToWidth(str,maxW,bold){
   return out;
 }
 
-// ---- draw text on the preview in the mc font ----
-// px is the size in real pixels, drawn crisp with the mc drop shadow
-function drawLines(ctx,lines,x,y,px,color,styles,noShadow){
+// ---- draw text onto the preview canvas in the MC font ----
+// we draw with the loaded webfont at a pixel scale so it looks in-game-ish
+function drawLines(ctx,lines,x,y,scale,color,styles){
   ctx.textBaseline="top";
-  ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+px+"px 'MinecraftTTF','VT323',monospace";
+  ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+(10*scale)+"px 'MinecraftTTF','VT323',monospace";
   lines.forEach((ln,i)=>{
-    const ly=y+i*px*1.05;
-    const shown=styles.obfuscated?obfuscate(ln):ln;
-    if(!noShadow){
-      ctx.fillStyle="rgba(0,0,0,0.55)";
-      ctx.fillText(shown,x+Math.max(1,px/10),ly+Math.max(1,px/10));
-    }
+    const ly=y+i*10*scale;
+    // shadow first (mc draws a dark drop shadow offset by 1px*scale)
+    ctx.fillStyle="rgba(0,0,0,0.55)";
+    ctx.fillText(ln,x+scale,ly+scale);
     ctx.fillStyle=color;
-    ctx.fillText(shown,x,ly);
-    const w=ctx.measureText(shown).width;
-    if(styles.underline){ctx.fillRect(x,ly+px*0.9,w,Math.max(1,px/10));}
-    if(styles.strikethrough){ctx.fillRect(x,ly+px*0.5,w,Math.max(1,px/10));}
+    ctx.fillText(ln,x,ly);
+    const w=ctx.measureText(ln).width;
+    if(styles.underline){ctx.fillRect(x,ly+9*scale,w,scale);}
+    if(styles.strikethrough){ctx.fillRect(x,ly+5*scale,w,scale);}
   });
 }
-// obfuscated swaps every char for a random one so it shimmers like in game
-const OBFCHARS="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-function obfuscate(s){ let o=""; for(const c of s)o+= c===" "?" ":OBFCHARS[Math.random()*OBFCHARS.length|0]; return o; }
-let obfTimer=null;
 
-// ---- the book n sign background images ----
+// ---- textures for book / sign backdrops ----
 const bookTexCache={};
 function loadTex(path,cb){
   if(bookTexCache[path])return cb(bookTexCache[path]);
@@ -327,154 +264,94 @@ function loadTex(path,cb){
   im.src=ASSET+path;
 }
 
-const hex=name=>{ if(name&&name[0]==="#")return name; const c=COLORS.find(c=>c[0]===name);return c?c[1]:"#FFFFFF";};
-
-// straight from the decompiled sign renderer (getDarkColor):
-// normal sign text is drawn at 40% brightness, black+glowing is a special cream color,
-// n glowing text uses the FULL color with an outline at full brightness
-function darken(hexColor,f){
-  const n=parseInt(hexColor.slice(1),16);
-  const r=Math.floor(((n>>16)&0xFF)*f), g=Math.floor(((n>>8)&0xFF)*f), b=Math.floor((n&0xFF)*f);
-  return "#"+[r,g,b].map(v=>v.toString(16).padStart(2,"0")).join("");
-}
-// draw one line of a sign, doing the real glow/darkening
-function drawSignLine(ctx,text,cx,y,fs,fullColor,glow,styles){
-  ctx.font=(styles.italic?"italic ":"")+(styles.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
-  const shown=styles.obfuscated?obfuscate(text):text;
-  const tw=ctx.measureText(shown).width;
-  const lx=cx-tw/2;                       // text is center-aligned, so lines start here
-  const thick=Math.max(2,Math.round(fs/9));
-  const mainColor=glow?(fullColor.toUpperCase()==="#000000"?"#000000":fullColor):darken(fullColor,0.4);
-  const drawDecorations=()=>{
-    ctx.fillStyle=mainColor;
-    if(styles.underline)ctx.fillRect(lx,y+fs*0.42,tw,thick);
-    if(styles.strikethrough)ctx.fillRect(lx,y-fs*0.02,tw,thick);
-  };
-  if(glow){
-    // full bright color with a chunky outline like the glowing text. i stamp the text
-    // at pixel offsets to get a crisp outline, strokeText just blurs against the font
-    const isBlack=fullColor.toUpperCase()==="#000000";
-    const outline=isBlack?"#F0EBCC":darken(fullColor,0.4);
-    const o=Math.max(2,Math.round(fs/9));
-    ctx.fillStyle=outline;
-    for(let dx=-o;dx<=o;dx+=o)for(let dy=-o;dy<=o;dy+=o){ if(dx||dy)ctx.fillText(shown,cx+dx,y+dy); }
-    // outline the underline/strike too
-    if(styles.underline){ctx.fillRect(lx-o,y+fs*0.42-o,tw+2*o,thick+2*o);}
-    if(styles.strikethrough){ctx.fillRect(lx-o,y-fs*0.02-o,tw+2*o,thick+2*o);}
-    ctx.fillStyle=isBlack?"#000000":fullColor;ctx.fillText(shown,cx,y);
-    drawDecorations();
-  } else {
-    // not glowing, just darken to 40%, no drop shadow on signs
-    ctx.fillStyle=mainColor;
-    ctx.fillText(shown,cx,y);
-    drawDecorations();
-  }
-}
-
-// make the canvas its real displayed size times the pixel ratio so text is sharp
-// instead of being a tiny canvas stretched up by css n going blurry
-function sizeCanvas(cv,cssW,cssH){
-  const dpr=Math.min(window.devicePixelRatio||1,3);
-  cv.style.width=cssW+"px";cv.style.height=cssH+"px";
-  cv.width=Math.round(cssW*dpr);cv.height=Math.round(cssH*dpr);
-  const ctx=cv.getContext("2d");
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.imageSmoothingEnabled=false;
-  return {ctx,w:cssW,h:cssH};
-}
+const hex=name=>{const c=COLORS.find(c=>c[0]===name);return c?c[1]:"#FFFFFF";};
 
 function render(){
-  const cv=$("render");
+  const cv=$("render"),ctx=cv.getContext("2d");
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,cv.width,cv.height);
   const color=hex(curColor);
   $("warn").textContent="";
-  // the box resizes, so size the canvas off how wide it actually is (capped)
-  const stageW=Math.min(($("stage").clientWidth||360)-32,360);
 
   if(mode==="text"){
-    const {ctx,w}=sizeCanvas(cv,stageW,180);
-    ctx.clearRect(0,0,w,180);
+    cv.width=420;cv.height=200;
+    ctx.imageSmoothingEnabled=false;
     const raw=$("editor").value;
-    const scale=2;
-    const lines=wrapToWidth(raw,(w-20)/scale,active.bold);
-    drawLines(ctx,lines,10,12,10*scale,color,active);
+    const lines=wrapToWidth(raw,380,active.bold);
+    drawLines(ctx,lines,10,12,2,color,active);
     buildTextOutput(raw);
   }
   else if(mode==="book"){
+    cv.width=256;cv.height=300;
     saveEditor();
-    const {ctx,w,h}=sizeCanvas(cv,stageW,stageW*1.23);
     loadTex("gui/book.png",img=>{
-      ctx.clearRect(0,0,w,h);
-      let bx=0,by=0,bw=w,bh=h;
+      ctx.imageSmoothingEnabled=false;
+      ctx.clearRect(0,0,cv.width,cv.height);
       if(img){
-        // the book pic sits at (20,1) 146x180 in the file, fit it to the canvas
-        const s=Math.min(w/146,h/180);
-        bw=146*s;bh=180*s;bx=(w-bw)/2;by=(h-bh)/2;
-        ctx.drawImage(img,20,1,146,180,bx,by,bw,bh);
+        // the book graphic sits at (20,1)-(166,181) in the 256 sheet, 146x180.
+        // draw it scaled up to fill the preview
+        const s=1.6;
+        ctx.drawImage(img,20,1,146,180,10,10,146*s,180*s);
       }
-      // the bit u can write on is the right ~62% of the book, pulled in a little
-      const px=bx+bw*0.20, py=by+bh*0.10, pw=bw*0.62;
       const page=bookPages[curPage];
-      const scale=pw/BOOK_W; // one "book pixel" = this many screen px
       const lines=wrapToWidth(page,BOOK_W,active.bold).slice(0,BOOK_LINES);
-      // book text is dark n flat, no shadow. white/default shows as the dark ink,
-      // colored text keeps its color but stays readable on the cream page
-      const inkColor=color==="#FFFFFF"?"#3f3f3f":color;
-      drawLines(ctx,lines,px,py,9*scale,inkColor,active,true);
+      // page text area starts inside the right-ish region of the book art
+      drawLines(ctx,lines,42,40,1.6,color==="#FFFFFF"?"#3f3f3f":color,active);
       const all=wrapToWidth(page,BOOK_W,active.bold);
       if(all.length>BOOK_LINES)$("warn").textContent="this page is "+all.length+" lines, books cap at "+BOOK_LINES;
     });
     buildBookOutput();
   }
   else if(mode==="sign"){
+    cv.width=300;cv.height=240;
     saveEditor();
-    const {ctx,w,h}=sizeCanvas(cv,stageW,stageW*0.85);
+    ctx.imageSmoothingEnabled=false;
+    // the real gui sign textures. standing is 24x26 (board on a post), hanging is
+    // 16x16 (bar with two hangers over a board). blow em up big n crunchy
     const path=signType==="hanging"?"gui/hanging_signs/oak.png":"gui/signs/oak.png";
-    // where the board actually is in each texture, measured off the pixels:
-    // standing 24x26: board is rows 0-11, full width, post underneath
-    // hanging 16x16: board is rows 6-15, cols 1-14, bar n chains up top
-    const region=signType==="hanging"
-      ? {x0:1/16, x1:15/16, y0:6/16, y1:16/16}
-      : {x0:0,    x1:1,     y0:0,    y1:12/26};
+    // where the writable board sits inside each texture, as fractions of the image
+    const area=signType==="hanging"
+      ? {x:1/16, y:3/16, w:14/16, h:5/16}      // hanging: board is the lower box
+      : {x:0,    y:0,    w:1,     h:20/26};     // standing: top ~20px is the board
     loadTex(path,img=>{
-      ctx.clearRect(0,0,w,h);
-      let bx,by,bw,bh;
+      ctx.imageSmoothingEnabled=false;
+      ctx.clearRect(0,0,cv.width,cv.height);
+      const faceLines=signFaces[signSide];
+      let boardX,boardY,boardW,boardH;
       if(img){
-        const iw=img.width,ih=img.height, s=Math.min(w/iw,h/ih)*0.95;
-        const dw=iw*s,dh=ih*s,ox=(w-dw)/2,oy=(h-dh)/2;
+        const iw=img.width,ih=img.height, S=280/iw; // scale to fill the width
+        const dw=iw*S, dh=ih*S, ox=(cv.width-dw)/2, oy=6;
         ctx.drawImage(img,0,0,iw,ih,ox,oy,dw,dh);
-        bx=ox+region.x0*dw; by=oy+region.y0*dh;
-        bw=(region.x1-region.x0)*dw; bh=(region.y1-region.y0)*dh;
-      } else { bx=w*0.1;by=h*0.1;bw=w*0.8;bh=h*0.5;
-        ctx.fillStyle="#9c7f4e";ctx.fillRect(bx,by,bw,bh); }
-      // wrap the text to the sign width then just keep the first 4 lines
-      const allLines=wrapToWidth(signFaces[signSide],SIGN_W,active.bold);
-      const faceLines=allLines.slice(0,SIGN_LINES);
-      // signs do 4 lines at a fixed height centered on the board. the source does
-      // y = i*lineHeight - 4*lineHeight/2 (centered), so i center the block n space it even
-      const lineH=bh/4.6;              // a touch of padding top/bottom
-      const fs=lineH*0.82;
-      const blockH=lineH*4;
-      const top=by+(bh-blockH)/2;
-      const cx=bx+bw/2;
-      ctx.textAlign="center";ctx.textBaseline="middle";
+        boardX=ox+area.x*dw; boardY=oy+area.y*dh; boardW=area.w*dw; boardH=area.h*dh;
+      } else {
+        // fallback if the texture won't load: plain board
+        boardX=50;boardY=40;boardW=200;boardH=100;
+        ctx.fillStyle="#9c7f4e";ctx.fillRect(boardX,boardY,boardW,boardH);
+      }
+      const cx=boardX+boardW/2;
+      const lh=boardH/(SIGN_LINES+0.5);
+      ctx.textAlign="center";
       faceLines.forEach((ln,i)=>{
-        const ly=top+lineH*i+lineH/2;
-        drawSignLine(ctx,ln,cx,ly,fs,color,signGlow,active);
+        const trimmed=ln.slice(0,60);
+        const over=textWidth(trimmed,active.bold)>SIGN_W;
+        const fs=Math.max(11,lh*0.7);
+        ctx.font=(active.italic?"italic ":"")+(active.bold?"bold ":"")+fs+"px 'MinecraftTTF','VT323',monospace";
+        const ly=boardY+lh*0.6+i*lh;
+        ctx.fillStyle="rgba(0,0,0,0.4)";ctx.fillText(trimmed,cx+1,ly+1);
+        ctx.fillStyle=over?"#c0392b":(color==="#FFFFFF"?"#1c1c1c":color);
+        ctx.fillText(trimmed,cx,ly);
       });
-      ctx.textAlign="left";ctx.textBaseline="top";
-      if(allLines.length>SIGN_LINES)$("warn").textContent="that's "+allLines.length+" lines, a sign only fits "+SIGN_LINES;
+      ctx.textAlign="left";
     });
+    const anyOver=signFaces[signSide].some(l=>textWidth(l,active.bold)>SIGN_W);
+    if(anyOver)$("warn").textContent="a line is wider than a sign fits ("+SIGN_W+"px), itll get cut off in game";
     buildSignOutput();
   }
-
-  // keep the obfuscated shimmer tickin if its on
-  if(active.obfuscated&&!obfTimer){ obfTimer=setInterval(()=>{ if(active.obfuscated)render(); else {clearInterval(obfTimer);obfTimer=null;} },120); }
 }
 
-// ---- build the text component object with the current styles ----
+// ---- build the styled component object for the current styles ----
 function styleObj(text){
   const o={text:text};
-  // named colors go by name, custom ones as #hex, mc takes both
   if(curColor!=="white")o.color=curColor;
   for(const k of ["bold","italic","underline","strikethrough","obfuscated"])if(active[k])o[k]=true;
   return o;
@@ -486,7 +363,7 @@ function buildTextOutput(raw){
   $("outHint").textContent="a /tellraw with your styled text";
 }
 function buildBookOutput(){
-  // each page is one styled component, matches how the editor styles the whole thing
+  // each page becomes one styled component (whole-page styling, matches the editor)
   const pages=bookPages.map(p=>JSON.stringify(styleObj(p)));
   const nbt='written_book_content={pages:['+pages.map(p=>"'"+p.replace(/'/g,"\\'")+"'").join(",")+
     "],title:\"My Book\",author:\"me\"}";
@@ -494,25 +371,17 @@ function buildBookOutput(){
   $("outHint").textContent=bookPages.length+" page"+(bookPages.length>1?"s":"")+", 1.21 component syntax";
 }
 function buildSignOutput(){
-  const glowNbt=signGlow?",has_glowing_text:true":"";
-  // wrap each face same as the preview then pad it out to 4 lines
-  const mk=face=>{
-    const lines=wrapToWidth(signFaces[face],SIGN_W,active.bold).slice(0,SIGN_LINES);
-    while(lines.length<4)lines.push("");
-    return "{messages:["+lines.map(l=>JSON.stringify(styleObj(l))).join(",")+"]"+glowNbt+"}";
-  };
+  const mk=face=>"{messages:["+signFaces[face].concat(["","","",""]).slice(0,4)
+    .map(l=>JSON.stringify(styleObj(l))).join(",")+"]}";
   const block=signType==="hanging"?"oak_hanging_sign":"oak_sign";
   const nbt="front_text="+mk("front")+",back_text="+mk("back");
   $("output").value="/setblock ~ ~ ~ "+block+"["+nbt+"]";
-  $("outHint").textContent="both faces, "+signType+" sign"+(signGlow?", glowing":"")+", place with /setblock";
+  $("outHint").textContent="both faces, "+signType+" sign, place with /setblock";
 }
 
 $("copyBtn").onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText($("output").value);};
 
 // go
-// redraw when the window resizes so it stays sharp n fits
-let rT; addEventListener("resize",()=>{clearTimeout(rT);rT=setTimeout(render,120);});
-setColor("white");
 syncModeUI();
 render();
 </script>
