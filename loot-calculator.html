@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Loot Table Calculator 1.21.11</title>
-<link rel="stylesheet" href="ui/style.css">
+<link rel="stylesheet" href="ui/style.css?v=2">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
   @font-face{font-family:'MinecraftTTF';src:url('minecraft.ttf');font-display:swap}
@@ -449,7 +449,7 @@ function collectRollable(entry,luck,out){
   const w=(entry.weight!=null?entry.weight:1)+(entry.quality||0)*luck;
   out.push({...entry,_w:Math.max(0,w)});
 }
-
+// starts empty, u paste ur own table n hit calculate
 </script>
 </body>
 </html>
